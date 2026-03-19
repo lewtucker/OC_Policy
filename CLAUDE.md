@@ -31,8 +31,21 @@ The reference OpenClaw repository is at `~/Documents/dev/OpenClaw Clone` — con
 - Security guard approval workflow (synchronous blocking vs. async queue)
 - UI technology choice (web framework, frontend approach)
 
-## Planning Documents
+## Repository Structure
 
-- [Policy_Inst.md](Policy_Inst.md) — Project brief and feature intent
-- [Policy_Examples.md](Policy_Examples.md) — Policy language examples (to be filled in)
-- [OC_Policy_Control_v01.md](OC_Policy_Control_v01.md) — Architecture & design document (current)
+```text
+docs/        Design documents and specs (markdown)
+pdf/         Generated PDFs — gitignored, recreate from docs/ as needed
+ui/          UI mockup source files (versioned HTML)
+src/plugin/  OpenClaw TypeScript enforcement plugin (Phase 1)
+src/server/  Python FastAPI policy server (Phase 1)
+public/      Vercel static output — copy of latest ui/ file as index.html
+```
+
+## Key Documents
+
+- [docs/Policy_Inst.md](docs/Policy_Inst.md) — Project brief and feature intent
+- [docs/Policy_Examples.md](docs/Policy_Examples.md) — Policy language examples (to be filled in)
+- [docs/OC_Policy_Control_v01.md](docs/OC_Policy_Control_v01.md) — Architecture & design (current)
+- [ui/UI_Mockup_v01.html](ui/UI_Mockup_v01.html) — UI mockup source
+- Live mockup: [oc-policy-ui.vercel.app](https://oc-policy-ui.vercel.app)
