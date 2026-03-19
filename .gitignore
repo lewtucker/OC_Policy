@@ -1,0 +1,8 @@
+# Vercel
+.vercel
+
+# Generated PDFs (recreate from markdown as needed)
+*.pdf
+
+# macOS
+.DS_Store
