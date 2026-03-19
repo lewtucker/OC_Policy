@@ -5,7 +5,7 @@ Simulates the plugin's HTTP calls to the policy server and verifies
 the server returns the correct verdict for each scenario.
 
 Usage:
-    OC_POLICY_AGENT_TOKEN=<token> python test_server.py [--url http://localhost:8080]
+    OC_POLICY_AGENT_TOKEN=<token> python3 test_server.py [--url http://localhost:8080]
 """
 import os
 import sys
