@@ -1,25 +1,24 @@
 """
-OC Policy Server — Phase 1
-Hardcoded policy: allow 'git' exec commands, deny everything else.
+OC Policy Server — Phase 2
+Rules loaded from policies.yaml; evaluated by the policy engine.
 """
 import os
+from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-app = FastAPI(title="OC Policy Server", version="0.1.0")
+from policy_engine import PolicyEngine
+
+app = FastAPI(title="OC Policy Server", version="0.2.0")
 
 AGENT_TOKEN = os.environ["OC_POLICY_AGENT_TOKEN"]
+POLICY_FILE = Path(os.environ.get("OC_POLICY_FILE", Path(__file__).parent / "policies.yaml"))
 
-# ── Hardcoded Phase 1 policy ─────────────────────────────────────────────────
-ALLOWED_PROGRAMS = {"git"}
-
-
-def extract_program(command: str) -> str:
-    """Return the first word (binary name) of a shell command."""
-    return command.strip().split()[0] if command.strip() else ""
+engine = PolicyEngine(POLICY_FILE)
 
 
 # ── Request / response models ─────────────────────────────────────────────────
+
 class CheckRequest(BaseModel):
     tool: str
     params: dict
@@ -31,35 +30,72 @@ class CheckResponse(BaseModel):
     approval_id: str | None = None
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+class RuleIn(BaseModel):
+    id: str
+    description: str = ""
+    effect: str           # "allow" | "deny" | "pending"
+    priority: int = 0
+    match: dict = {}
+
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
 def require_agent_token(authorization: str) -> None:
     if authorization != f"Bearer {AGENT_TOKEN}":
         raise HTTPException(status_code=401, detail="Invalid agent token")
 
 
+# ── Core endpoint (called by the plugin) ─────────────────────────────────────
+
 @app.post("/check", response_model=CheckResponse)
 async def check(req: CheckRequest, authorization: str = Header(...)):
     require_agent_token(authorization)
 
-    if req.tool == "exec":
-        command = str(req.params.get("command", ""))
-        program = extract_program(command)
+    effect, reason, rule_id = engine.evaluate(req.tool, req.params)
 
-        if program in ALLOWED_PROGRAMS:
-            print(f"[ALLOW] exec: {command}")
-            return CheckResponse(verdict="allow")
+    label = effect.upper()
+    print(f"[{label}] tool={req.tool!r}  params={req.params}  rule={rule_id!r}  reason={reason!r}")
 
-        print(f"[DENY]  exec: {command}  (program '{program}' not in allowlist)")
-        return CheckResponse(
-            verdict="deny",
-            reason=f"No policy allows exec of '{program}'"
-        )
+    return CheckResponse(verdict=effect, reason=reason)
 
-    # All other tools denied by default in Phase 1
-    print(f"[DENY]  {req.tool}: {req.params}")
-    return CheckResponse(verdict="deny", reason=f"Tool '{req.tool}' not permitted by Phase 1 policy")
 
+# ── Policy CRUD (called by the web UI / admin) ────────────────────────────────
+
+@app.get("/policies")
+async def list_policies(authorization: str = Header(...)):
+    require_agent_token(authorization)
+    return {"policies": [r.to_dict() for r in engine.rules]}
+
+
+@app.post("/policies", status_code=201)
+async def add_policy(rule: RuleIn, authorization: str = Header(...)):
+    require_agent_token(authorization)
+    try:
+        new_rule = engine.add(rule.model_dump())
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    print(f"[POLICY] added rule '{new_rule.id}'")
+    return new_rule.to_dict()
+
+
+@app.delete("/policies/{rule_id}", status_code=204)
+async def delete_policy(rule_id: str, authorization: str = Header(...)):
+    require_agent_token(authorization)
+    if not engine.remove(rule_id):
+        raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found")
+    print(f"[POLICY] removed rule '{rule_id}'")
+
+
+@app.post("/policies/reload")
+async def reload_policies(authorization: str = Header(...)):
+    require_agent_token(authorization)
+    engine.reload()
+    print(f"[POLICY] reloaded {len(engine.rules)} rule(s) from disk")
+    return {"reloaded": len(engine.rules)}
+
+
+# ── Health ────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "phase": 1}
+    return {"status": "ok", "phase": 2, "rules": len(engine.rules)}

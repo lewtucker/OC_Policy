@@ -1,0 +1,9 @@
+version: 1
+policies:
+- id: allow-git
+  description: Allow git commands in any directory
+  effect: allow
+  priority: 10
+  match:
+    tool: exec
+    program: git
