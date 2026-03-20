@@ -4,5 +4,9 @@
 # Generated PDFs (recreate from markdown as needed)
 *.pdf
 
+# Python
+__pycache__/
+*.pyc
+
 # macOS
 .DS_Store
