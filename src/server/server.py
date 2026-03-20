@@ -5,13 +5,15 @@ Rules from policies.yaml; approvals queue; audit log.
 import os
 from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from policy_engine import PolicyEngine
 from approvals import ApprovalStore
 from audit import AuditLog
 
-app = FastAPI(title="OC Policy Server", version="0.3.0")
+app = FastAPI(title="OC Policy Server", version="0.4.0")
 
 AGENT_TOKEN = os.environ["OC_POLICY_AGENT_TOKEN"]
 POLICY_FILE = Path(os.environ.get("OC_POLICY_FILE", Path(__file__).parent / "policies.yaml"))
@@ -19,6 +21,13 @@ POLICY_FILE = Path(os.environ.get("OC_POLICY_FILE", Path(__file__).parent / "pol
 engine    = PolicyEngine(POLICY_FILE)
 approvals = ApprovalStore()
 audit     = AuditLog()
+
+# ── Static UI ─────────────────────────────────────────────────────────────────
+STATIC_DIR = Path(__file__).parent / "static"
+
+@app.get("/", include_in_schema=False)
+async def serve_ui():
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 # ── Request / response models ─────────────────────────────────────────────────
