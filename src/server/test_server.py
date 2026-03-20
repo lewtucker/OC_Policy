@@ -149,47 +149,135 @@ run("10. npm exec → DENY after removing rule",
 # ── Group 3: priority ─────────────────────────────────────────────────────────
 print(f"\n{DIM}── Priority: deny beats allow for same program ─────────────────{RESET}")
 
-# Add a low-priority allow for curl, then a high-priority deny
-run("11. Add low-priority allow-curl (priority 5)",
+# Use wget (no existing rule) to test priority ordering cleanly
+run("11. Add low-priority allow-wget (priority 5)",
     lambda: request("POST", "/policies", {
-        "id": "allow-curl",
+        "id": "allow-wget",
         "effect": "allow",
         "priority": 5,
-        "match": {"tool": "exec", "program": "curl"},
+        "match": {"tool": "exec", "program": "wget"},
     }),
-    lambda r: r["id"] == "allow-curl")
+    lambda r: r["id"] == "allow-wget")
 
-run("12. curl → ALLOW at priority 5",
-    lambda: check("exec", {"command": "curl https://example.com"}),
+run("12. wget → ALLOW at priority 5",
+    lambda: check("exec", {"command": "wget https://example.com"}),
     lambda r: r["verdict"] == "allow")
 
-run("13. Add high-priority deny-curl (priority 50)",
+run("13. Add high-priority deny-wget (priority 50)",
     lambda: request("POST", "/policies", {
-        "id": "deny-curl",
-        "description": "Block curl — use approved HTTP clients only",
+        "id": "deny-wget",
+        "description": "Block wget — use approved HTTP clients only",
         "effect": "deny",
         "priority": 50,
-        "match": {"tool": "exec", "program": "curl"},
+        "match": {"tool": "exec", "program": "wget"},
     }),
-    lambda r: r["id"] == "deny-curl")
+    lambda r: r["id"] == "deny-wget")
 
-run("14. curl → DENY — high-priority deny beats low-priority allow",
-    lambda: check("exec", {"command": "curl https://example.com"}),
+run("14. wget → DENY — high-priority deny beats low-priority allow",
+    lambda: check("exec", {"command": "wget https://example.com"}),
     lambda r: r["verdict"] == "deny")
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 print(f"\n{DIM}── Cleanup ──────────────────────────────────────────────────────{RESET}")
 
-run("15. Remove allow-curl and deny-curl",
+run("15. Remove allow-wget and deny-wget",
     lambda: (
-        request("DELETE", "/policies/allow-curl"),
-        request("DELETE", "/policies/deny-curl"),
+        request("DELETE", "/policies/allow-wget"),
+        request("DELETE", "/policies/deny-wget"),
     ),
     lambda r: True)
 
 run("16. POST /policies/reload — rules reload from disk",
     lambda: request("POST", "/policies/reload"),
     lambda r: "reloaded" in r)
+
+# ── Group 4: approvals queue ──────────────────────────────────────────────────
+print(f"\n{DIM}── Approvals queue ─────────────────────────────────────────────{RESET}")
+
+# curl has a pending rule in policies.yaml
+_approval_id = None
+
+def _trigger_pending():
+    global _approval_id
+    r = check("exec", {"command": "curl https://example.com"})
+    _approval_id = r.get("approval_id")
+    return r
+
+run("17. curl → PENDING (requires approval)",
+    _trigger_pending,
+    lambda r: r["verdict"] == "pending" and r.get("approval_id") is not None)
+
+run("18. GET /approvals lists the pending record",
+    lambda: request("GET", "/approvals?pending_only=true"),
+    lambda r: any(a["id"] == _approval_id for a in r.get("approvals", [])))
+
+run("19. GET /approvals/{id} returns the record",
+    lambda: request("GET", f"/approvals/{_approval_id}"),
+    lambda r: r["id"] == _approval_id and r["verdict"] is None)
+
+run("20. POST /approvals/{id} approves it",
+    lambda: request("POST", f"/approvals/{_approval_id}", {
+        "verdict": "allow",
+        "reason": "Approved by test harness",
+    }),
+    lambda r: r["verdict"] == "allow" and r["resolved_at"] is not None)
+
+run("21. GET /approvals/{id} after approval shows resolved",
+    lambda: request("GET", f"/approvals/{_approval_id}"),
+    lambda r: r["verdict"] == "allow")
+
+# Test deny path with a second approval
+_approval_id_2 = None
+
+def _trigger_pending_2():
+    global _approval_id_2
+    r = check("exec", {"command": "curl https://evil.example.com"})
+    _approval_id_2 = r.get("approval_id")
+    return r
+
+run("22. curl → PENDING (second request)",
+    _trigger_pending_2,
+    lambda r: r["verdict"] == "pending" and r.get("approval_id") is not None)
+
+run("23. POST /approvals/{id} denies it",
+    lambda: request("POST", f"/approvals/{_approval_id_2}", {
+        "verdict": "deny",
+        "reason": "Suspicious URL",
+    }),
+    lambda r: r["verdict"] == "deny" and r["reason"] == "Suspicious URL")
+
+# Test 24 expects a 404 error — handled inline
+print(f"\n  {BOLD}24. POST /approvals/{{id}} on already-resolved → 404{RESET}")
+try:
+    request("POST", f"/approvals/{_approval_id}", {"verdict": "deny"})
+    print(f"    [{RED}FAIL{RESET}] expected 404, got success")
+    failed += 1
+except RuntimeError as e:
+    if "404" in str(e):
+        print(f"    result=404 as expected")
+        print(f"    [{GREEN}PASS{RESET}]")
+        passed += 1
+    else:
+        print(f"    [{RED}FAIL{RESET}] unexpected error: {e}")
+        failed += 1
+
+# ── Group 5: audit log ────────────────────────────────────────────────────────
+print(f"\n{DIM}── Audit log ───────────────────────────────────────────────────{RESET}")
+
+run("25. GET /audit returns entries",
+    lambda: request("GET", "/audit"),
+    lambda r: "entries" in r and len(r["entries"]) > 0)
+
+run("26. Audit entries have required fields",
+    lambda: request("GET", "/audit?limit=1"),
+    lambda r: all(
+        k in r["entries"][0]
+        for k in ("id", "timestamp", "tool", "params", "verdict", "rule_id", "reason")
+    ))
+
+run("27. Audit log includes the pending/approval entries",
+    lambda: request("GET", "/audit"),
+    lambda r: any(e["verdict"] == "pending" for e in r["entries"]))
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 total = passed + failed

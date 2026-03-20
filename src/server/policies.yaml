@@ -7,3 +7,10 @@ policies:
   match:
     tool: exec
     program: git
+- id: require-approval-for-curl
+  description: curl requires human approval before execution
+  effect: pending
+  priority: 10
+  match:
+    tool: exec
+    program: curl
