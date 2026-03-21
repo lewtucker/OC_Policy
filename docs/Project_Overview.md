@@ -10,7 +10,7 @@
 
 Autonomous AI agents can take actions that have real consequences: deleting files, making network calls, running shell commands, pushing code. Most of the time those actions are exactly what you wanted. Sometimes they are not — and by the time you notice, the damage is done.
 
-**OC Policy** is a policy enforcement system for AI agents. Its purpose is to give operators control over what an agent is allowed to do, in real time, without having to trust that the agent will stay within safe boundaries on its own. Every tool call an agent attempts passes through a policy gate before it executes. The gate can allow it, deny it outright, or hold it for a human to approve.
+**OC Policy** is a policy enforcement system for AI agents. Its purpose is to give operators control over what an agent is allowed to do, in real time, without having to trust that the agent will stay within safe boundaries on its own. Every tool call an agent attempts passes through a policy gate before it executes. The gate can allow it, deny it outright, or hold it for a human to approve. This approach is inspired by the policy language made for the Zero-Trust Packet Routing system, an identity-aware network security layer (see [zpr.org](https://zpr.org)).
 
 The system is designed around three ideas:
 
