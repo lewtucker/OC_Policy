@@ -237,7 +237,7 @@ The formal security model for the system. Starts from ten concrete policy exampl
 - An implementation roadmap ordered by cost and value
 - An honest account of what this model cannot solve: the identity root problem, emergent behavior, policy correctness, and approval fatigue
 
-### [Identity_and_Plugin_Trust_v01.md](Identity_and_Plugin_Trust_v01.md)
+### [Controlling_OpenClaw_Agents_v02.md](Controlling_OpenClaw_Agents_v02.md)
 
 A discussion document that identifies the structural gaps in the current prototype and proposes solutions. Key issues covered:
 
