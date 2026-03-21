@@ -13,3 +13,6 @@ __pycache__/
 
 # Runtime data
 src/server/audit.jsonl
+
+# Screenshots
+screenshots/
