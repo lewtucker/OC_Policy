@@ -8,6 +8,20 @@
 
 ---
 
+## Introduction — Agentic Systems Operating Autonomously
+
+Identity of entities — whether people, actors, resources, filesystems, or other things — is at the heart of any policy enforcement system.
+
+An interesting problem arises with systems that can modify their own behavior, ignore their own rules, or misrepresent what they are doing. We must therefore think carefully about the context and environment within which an agentic system operates.
+
+Running an agentic system inside a Virtual Machine or container on a host is a practical way to bound what resources the agent can change or modify. The host operating system can enforce which resources are read-only. Crucially, the policy rules and the enforcement mechanism must themselves run outside the boundary the agent can modify — a policy server the agent can rewrite is no policy server at all.
+
+Keeping secrets in an encrypted vault, accessible only through a trusted service interface, is an absolute requirement. An agent that can read its own credentials can impersonate its own policy enforcement.
+
+This proposal is at the thought-development stage. A prototype of a policy-based control system has been developed as a useful testbed for exploring and stress-testing this model.
+
+---
+
 ## 1. Starting From Natural Language
 
 The best way to design a policy language is to start with things people actually want to say and work backwards to the abstractions needed to express them. Here are ten concrete examples, ranging from simple to complex:
@@ -538,7 +552,7 @@ The above model is significantly more capable than what exists today. This secti
 | `when:` time conditions | Low | Time check at evaluation |
 | `when:` plugin-reviewed-within | High | Requires plugin metadata store |
 
-#### Practical build order
+### Practical build order
 
 - Phase 3a: Subject types — the single highest-value, lowest-cost item
 - Phase 3b: Person identities, roles, and approval routing
@@ -550,19 +564,19 @@ The above model is significantly more capable than what exists today. This secti
 
 ## 7. What This Model Does Not Solve
 
-#### The identity root problem
+### The identity root problem
 
 Even with signed tokens, something has to be trusted unconditionally — the host that signs the tokens. If the host machine is compromised, all bets are off. This model buys defense-in-depth within a trusted host, not protection against a compromised infrastructure.
 
-#### Emergent behavior
+### Emergent behavior
 
 A policy can say "subagents cannot delete files." It cannot say "the combination of requests the agent makes must not collectively exfiltrate your SSH keys." Intent-level analysis is outside the scope of a rule-based system.
 
-#### Policy correctness
+### Policy correctness
 
 A policy that perfectly expresses the administrator's intent is still only as good as the administrator's understanding of what the agent will do. Policies operate on requests, not goals. An agent can achieve a harmful goal entirely through individually-permitted requests.
 
-#### Approval fatigue
+### Approval fatigue
 
 If too many requests require approval, humans will approve reflexively without reading. The model provides the mechanism; the judgment of which requests actually need human review is a human problem.
 
