@@ -1,8 +1,16 @@
-# OC Policy — Identity Model & Plugin Trust
+# Controlling Open Claw Agents Prototype
 
 **Date**: 2026-03-21
 **Status**: Discussion draft — not yet implemented
 **Context**: Written after Phase 1 (hook integration with Nanoclaw) is working end-to-end.
+
+---
+
+## Objective
+
+Autonomous AI agents like OpenClaw can take consequential actions — modifying files, running commands, making network calls — without necessarily checking whether those actions are safe or intended. The goal of this project is to build a practical control layer that sits between the agent and the resources it can affect, enforcing a set of human-authored policies before any action is permitted to execute.
+
+A working prototype demonstrates the core enforcement loop: every tool call the agent attempts is intercepted by a policy hook, evaluated against a set of rules, and either allowed, blocked outright, or held for explicit human approval. This document examines the next layer of that problem — *who* is acting — and proposes how identity, actor types, and plugin trust should be modeled as the system matures beyond the prototype stage.
 
 ---
 
@@ -33,7 +41,7 @@ Expanding the policy system requires understanding that "who is acting" has two 
 For a single user running Nanoclaw as a personal assistant, the meaningful identities are not people — they are **actors within the system**:
 
 | Subject | What it is | Example |
-|---|---|---|
+| --- | --- | --- |
 | `session:main` | You, talking directly to Nanoclaw | "Search for the weather" |
 | `agent:subagent` | A subagent Nanoclaw spawned to do work | Nanoclaw delegates research to a sub-agent |
 | `task:scheduled` | An automated task, no human present | A nightly report that runs at 2am |

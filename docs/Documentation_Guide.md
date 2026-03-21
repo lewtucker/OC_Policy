@@ -20,7 +20,7 @@
 | [OC_Policy_Control_v01.md](OC_Policy_Control_v01.md) | Detailed architecture and design reference — three-layer system, ZPL-inspired identity model, policy language, tamper prevention, and plugin capability declarations |
 | [Trust_and_Security_Model_v02.md](Trust_and_Security_Model_v02.md) | Formal security model — governing principles, OCPL policy language, evaluation algorithm, and implementation roadmap *(current version)* |
 | [Trust_and_Security_Model_v01.md](Trust_and_Security_Model_v01.md) | Earlier draft of the security model *(superseded by v02)* |
-| [Controlling_OpenClaw_Agents_v02.md](Controlling_OpenClaw_Agents_v02.md) | Discussion of identity and plugin trust — subject types, multi-user team identity, the subject forgery problem, and plugin trust levels |
+| [Controlling_OpenClaw_Agents_v02.md](Controlling_OpenClaw_Agents_v02.md) | Controlling Open Claw Agents Prototype — identity and plugin trust model, subject types, multi-user team identity, the subject forgery problem, and plugin trust levels |
 | [Policy_Examples.md](Policy_Examples.md) | Policy language examples (placeholder — to be filled in) |
 
 ## Progress Reports
