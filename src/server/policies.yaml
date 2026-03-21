@@ -1,16 +1,19 @@
 version: 1
 policies:
-- id: allow-git
-  description: Allow git commands in any directory
-  effect: allow
-  priority: 10
-  match:
-    tool: exec
-    program: git
-- id: require-approval-for-curl
-  description: curl requires human approval before execution
+- id: ask-websearch
+  description: Require approval before any web search
   effect: pending
-  priority: 10
+  priority: 20
   match:
-    tool: exec
-    program: curl
+    tool: WebSearch
+- id: ask-webfetch
+  description: Require approval before fetching any URL
+  effect: pending
+  priority: 20
+  match:
+    tool: WebFetch
+- id: allow-all
+  description: Allow everything not matched by a higher-priority rule
+  effect: allow
+  priority: 0
+  match: {}

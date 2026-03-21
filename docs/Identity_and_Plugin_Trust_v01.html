@@ -1,0 +1,291 @@
+<!DOCTYPE html><html><head>
+      <title>Identity_and_Plugin_Trust_v01</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      
+      <link rel="stylesheet" href="file:////Users/lewtucker/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.8.21/crossnote/dependencies/katex/katex.min.css">
+      
+      
+      
+      
+      
+      <style>
+      code[class*=language-],pre[class*=language-]{color:#333;background:0 0;font-family:Consolas,"Liberation Mono",Menlo,Courier,monospace;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.4;-moz-tab-size:8;-o-tab-size:8;tab-size:8;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:.8em;overflow:auto;border-radius:3px;background:#f5f5f5}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal;background:#f5f5f5}.token.blockquote,.token.comment{color:#969896}.token.cdata{color:#183691}.token.doctype,.token.macro.property,.token.punctuation,.token.variable{color:#333}.token.builtin,.token.important,.token.keyword,.token.operator,.token.rule{color:#a71d5d}.token.attr-value,.token.regex,.token.string,.token.url{color:#183691}.token.atrule,.token.boolean,.token.code,.token.command,.token.constant,.token.entity,.token.number,.token.property,.token.symbol{color:#0086b3}.token.prolog,.token.selector,.token.tag{color:#63a35c}.token.attr-name,.token.class,.token.class-name,.token.function,.token.id,.token.namespace,.token.pseudo-class,.token.pseudo-element,.token.url-reference .token.variable{color:#795da3}.token.entity{cursor:help}.token.title,.token.title .token.punctuation{font-weight:700;color:#1d3e81}.token.list{color:#ed6a43}.token.inserted{background-color:#eaffea;color:#55a532}.token.deleted{background-color:#ffecec;color:#bd2c00}.token.bold{font-weight:700}.token.italic{font-style:italic}.language-json .token.property{color:#183691}.language-markup .token.tag .token.punctuation{color:#333}.language-css .token.function,code.language-css{color:#0086b3}.language-yaml .token.atrule{color:#63a35c}code.language-yaml{color:#183691}.language-ruby .token.function{color:#333}.language-markdown .token.url{color:#795da3}.language-makefile .token.symbol{color:#795da3}.language-makefile .token.variable{color:#183691}.language-makefile .token.builtin{color:#0086b3}.language-bash .token.keyword{color:#0086b3}pre[data-line]{position:relative;padding:1em 0 1em 3em}pre[data-line] .line-highlight-wrapper{position:absolute;top:0;left:0;background-color:transparent;display:block;width:100%}pre[data-line] .line-highlight{position:absolute;left:0;right:0;padding:inherit 0;margin-top:1em;background:hsla(24,20%,50%,.08);background:linear-gradient(to right,hsla(24,20%,50%,.1) 70%,hsla(24,20%,50%,0));pointer-events:none;line-height:inherit;white-space:pre}pre[data-line] .line-highlight:before,pre[data-line] .line-highlight[data-end]:after{content:attr(data-start);position:absolute;top:.4em;left:.6em;min-width:1em;padding:0 .5em;background-color:hsla(24,20%,50%,.4);color:#f4f1ef;font:bold 65%/1.5 sans-serif;text-align:center;vertical-align:.3em;border-radius:999px;text-shadow:none;box-shadow:0 1px #fff}pre[data-line] .line-highlight[data-end]:after{content:attr(data-end);top:auto;bottom:.4em}html body{font-family:'Helvetica Neue',Helvetica,'Segoe UI',Arial,freesans,sans-serif;font-size:16px;line-height:1.6;color:#333;background-color:#fff;overflow:initial;box-sizing:border-box;word-wrap:break-word}html body>:first-child{margin-top:0}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{line-height:1.2;margin-top:1em;margin-bottom:16px;color:#000}html body h1{font-size:2.25em;font-weight:300;padding-bottom:.3em}html body h2{font-size:1.75em;font-weight:400;padding-bottom:.3em}html body h3{font-size:1.5em;font-weight:500}html body h4{font-size:1.25em;font-weight:600}html body h5{font-size:1.1em;font-weight:600}html body h6{font-size:1em;font-weight:600}html body h1,html body h2,html body h3,html body h4,html body h5{font-weight:600}html body h5{font-size:1em}html body h6{color:#5c5c5c}html body strong{color:#000}html body del{color:#5c5c5c}html body a:not([href]){color:inherit;text-decoration:none}html body a{color:#08c;text-decoration:none}html body a:hover{color:#00a3f5;text-decoration:none}html body img{max-width:100%}html body>p{margin-top:0;margin-bottom:16px;word-wrap:break-word}html body>ol,html body>ul{margin-bottom:16px}html body ol,html body ul{padding-left:2em}html body ol.no-list,html body ul.no-list{padding:0;list-style-type:none}html body ol ol,html body ol ul,html body ul ol,html body ul ul{margin-top:0;margin-bottom:0}html body li{margin-bottom:0}html body li.task-list-item{list-style:none}html body li>p{margin-top:0;margin-bottom:0}html body .task-list-item-checkbox{margin:0 .2em .25em -1.8em;vertical-align:middle}html body .task-list-item-checkbox:hover{cursor:pointer}html body blockquote{margin:16px 0;font-size:inherit;padding:0 15px;color:#5c5c5c;background-color:#f0f0f0;border-left:4px solid #d6d6d6}html body blockquote>:first-child{margin-top:0}html body blockquote>:last-child{margin-bottom:0}html body hr{height:4px;margin:32px 0;background-color:#d6d6d6;border:0 none}html body table{margin:10px 0 15px 0;border-collapse:collapse;border-spacing:0;display:block;width:100%;overflow:auto;word-break:normal;word-break:keep-all}html body table th{font-weight:700;color:#000}html body table td,html body table th{border:1px solid #d6d6d6;padding:6px 13px}html body dl{padding:0}html body dl dt{padding:0;margin-top:16px;font-size:1em;font-style:italic;font-weight:700}html body dl dd{padding:0 16px;margin-bottom:16px}html body code{font-family:Menlo,Monaco,Consolas,'Courier New',monospace;font-size:.85em;color:#000;background-color:#f0f0f0;border-radius:3px;padding:.2em 0}html body code::after,html body code::before{letter-spacing:-.2em;content:'\00a0'}html body pre>code{padding:0;margin:0;word-break:normal;white-space:pre;background:0 0;border:0}html body .highlight{margin-bottom:16px}html body .highlight pre,html body pre{padding:1em;overflow:auto;line-height:1.45;border:#d6d6d6;border-radius:3px}html body .highlight pre{margin-bottom:0;word-break:normal}html body pre code,html body pre tt{display:inline;max-width:initial;padding:0;margin:0;overflow:initial;line-height:inherit;word-wrap:normal;background-color:transparent;border:0}html body pre code:after,html body pre code:before,html body pre tt:after,html body pre tt:before{content:normal}html body blockquote,html body dl,html body ol,html body p,html body pre,html body ul{margin-top:0;margin-bottom:16px}html body kbd{color:#000;border:1px solid #d6d6d6;border-bottom:2px solid #c7c7c7;padding:2px 4px;background-color:#f0f0f0;border-radius:3px}@media print{html body{background-color:#fff}html body h1,html body h2,html body h3,html body h4,html body h5,html body h6{color:#000;page-break-after:avoid}html body blockquote{color:#5c5c5c}html body pre{page-break-inside:avoid}html body table{display:table}html body img{display:block;max-width:100%;max-height:100%}html body code,html body pre{word-wrap:break-word;white-space:pre}}.markdown-preview{width:100%;height:100%;box-sizing:border-box}.markdown-preview ul{list-style:disc}.markdown-preview ul ul{list-style:circle}.markdown-preview ul ul ul{list-style:square}.markdown-preview ol{list-style:decimal}.markdown-preview ol ol,.markdown-preview ul ol{list-style-type:lower-roman}.markdown-preview ol ol ol,.markdown-preview ol ul ol,.markdown-preview ul ol ol,.markdown-preview ul ul ol{list-style-type:lower-alpha}.markdown-preview .newpage,.markdown-preview .pagebreak{page-break-before:always}.markdown-preview pre.line-numbers{position:relative;padding-left:3.8em;counter-reset:linenumber}.markdown-preview pre.line-numbers>code{position:relative}.markdown-preview pre.line-numbers .line-numbers-rows{position:absolute;pointer-events:none;top:1em;font-size:100%;left:0;width:3em;letter-spacing:-1px;border-right:1px solid #999;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}.markdown-preview pre.line-numbers .line-numbers-rows>span{pointer-events:none;display:block;counter-increment:linenumber}.markdown-preview pre.line-numbers .line-numbers-rows>span:before{content:counter(linenumber);color:#999;display:block;padding-right:.8em;text-align:right}.markdown-preview .mathjax-exps .MathJax_Display{text-align:center!important}.markdown-preview:not([data-for=preview]) .code-chunk .code-chunk-btn-group{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .status{display:none}.markdown-preview:not([data-for=preview]) .code-chunk .output-div{margin-bottom:16px}.markdown-preview .md-toc{padding:0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link div,.markdown-preview .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}.markdown-preview .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}.scrollbar-style::-webkit-scrollbar{width:8px}.scrollbar-style::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}.scrollbar-style::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode]){position:relative;width:100%;height:100%;top:0;left:0;margin:0;padding:0;overflow:auto}html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{position:relative;top:0;min-height:100vh}@media screen and (min-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em calc(50% - 457px + 2em)}}@media screen and (max-width:914px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode]) .markdown-preview{font-size:14px!important;padding:1em}}@media print{html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{display:none}}html body[for=html-export]:not([data-presentation-mode]) #sidebar-toc-btn{position:fixed;bottom:8px;left:8px;font-size:28px;cursor:pointer;color:inherit;z-index:99;width:32px;text-align:center;opacity:.4}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] #sidebar-toc-btn{opacity:1}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc{position:fixed;top:0;left:0;width:300px;height:100%;padding:32px 0 48px 0;font-size:14px;box-shadow:0 0 4px rgba(150,150,150,.33);box-sizing:border-box;overflow:auto;background-color:inherit}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar{width:8px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-track{border-radius:10px;background-color:transparent}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc::-webkit-scrollbar-thumb{border-radius:5px;background-color:rgba(150,150,150,.66);border:4px solid rgba(150,150,150,.66);background-clip:content-box}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc a{text-decoration:none}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc{padding:0 16px}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link{display:inline;padding:.25rem 0}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link div,html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper .md-toc-link p{display:inline}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .md-sidebar-toc .md-toc .md-toc-link-wrapper.highlighted .md-toc-link{font-weight:800}html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{left:300px;width:calc(100% - 300px);padding:2em calc(50% - 457px - 300px / 2);margin:0;box-sizing:border-box}@media screen and (max-width:1274px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{padding:2em}}@media screen and (max-width:450px){html body[for=html-export]:not([data-presentation-mode])[html-show-sidebar-toc] .markdown-preview{width:100%}}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .markdown-preview{left:50%;transform:translateX(-50%)}html body[for=html-export]:not([data-presentation-mode]):not([html-show-sidebar-toc]) .md-sidebar-toc{display:none}
+/* Please visit the URL below for more information: */
+/*   https://shd101wyy.github.io/markdown-preview-enhanced/#/customize-css */
+
+      </style>
+      <script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    // your code here
+  });
+</script>
+    </head>
+    <body for="html-export">
+      <div class="crossnote markdown-preview  ">
+      
+<h1 id="oc-policy--identity-model--plugin-trust">OC Policy — Identity Model &amp; Plugin Trust </h1>
+<p><strong>Date</strong>: 2026-03-21<br>
+<strong>Status</strong>: Discussion draft — not yet implemented<br>
+<strong>Context</strong>: Written after Phase 1 (hook integration with Nanoclaw) is working end-to-end.</p>
+<hr>
+<h2 id="whats-working-today">What's Working Today </h2>
+<p>The enforcement chain is real and running:</p>
+<ol>
+<li>Nanoclaw receives a message via Telegram</li>
+<li>It spawns a container running the Claude Agent SDK</li>
+<li>Before every tool call, a <code>PreToolUse</code> hook fires</li>
+<li>The hook POSTs <code>{ tool, params }</code> to the OC Policy Server</li>
+<li>The server evaluates the request against <code>policies.yaml</code></li>
+<li>If <code>pending</code>, an approval card appears in the UI</li>
+<li>The hook polls until resolved, then allows or blocks</li>
+</ol>
+<p>The current policy language matches on <code>tool</code> and <code>params</code> fields (program name, file path). There is no concept of <em>who</em> is making the request. Every tool call looks identical to the policy server regardless of whether a human asked for it or an autonomous subagent decided to do it on its own.</p>
+<p>That is the central gap this document addresses.</p>
+<hr>
+<h2 id="two-dimensions-of-identity">Two Dimensions of Identity </h2>
+<p>Expanding the policy system requires understanding that "who is acting" has two completely different meanings depending on how you use Nanoclaw:</p>
+<h3 id="dimension-1--autonomous-vs-human-initiated-actions-single-user">Dimension 1 — Autonomous vs. Human-Initiated Actions (Single User) </h3>
+<p>For a single user running Nanoclaw as a personal assistant, the meaningful identities are not people — they are <strong>actors within the system</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Subject</th>
+<th>What it is</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>session:main</code></td>
+<td>You, talking directly to Nanoclaw</td>
+<td>"Search for the weather"</td>
+</tr>
+<tr>
+<td><code>agent:subagent</code></td>
+<td>A subagent Nanoclaw spawned to do work</td>
+<td>Nanoclaw delegates research to a sub-agent</td>
+</tr>
+<tr>
+<td><code>task:scheduled</code></td>
+<td>An automated task, no human present</td>
+<td>A nightly report that runs at 2am</td>
+</tr>
+<tr>
+<td><code>plugin:&lt;source&gt;:&lt;name&gt;</code></td>
+<td>A plugin acting on its own</td>
+<td>A research plugin fetching URLs</td>
+</tr>
+</tbody>
+</table>
+<p>The security concern here is not "the wrong human is asking" — it's <strong>"the agent is doing something you didn't intend when you weren't watching."</strong> A scheduled task that spontaneously starts browsing the web, or a subagent that deletes files while solving a problem, are realistic failure modes even without any adversarial intent.</p>
+<p>Example policies for this model:</p>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token comment"># Scheduled tasks: hard limits, no approval path</span>
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> scheduled<span class="token punctuation">-</span>no<span class="token punctuation">-</span>web
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">50</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> WebSearch
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> task<span class="token punctuation">:</span>scheduled
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> scheduled<span class="token punctuation">-</span>no<span class="token punctuation">-</span>delete
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">50</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Bash
+    <span class="token key atrule">program</span><span class="token punctuation">:</span> rm
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> task<span class="token punctuation">:</span>scheduled
+
+<span class="token comment"># Subagents: approval required for internet and writes</span>
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> subagent<span class="token punctuation">-</span>ask<span class="token punctuation">-</span>web
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> pending
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">40</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> WebSearch
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> agent<span class="token punctuation">:</span>subagent
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> subagent<span class="token punctuation">-</span>no<span class="token punctuation">-</span>delete
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">40</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Bash
+    <span class="token key atrule">program</span><span class="token punctuation">:</span> rm
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> agent<span class="token punctuation">:</span>subagent
+
+<span class="token comment"># Human session: soft speed bump on destructive ops</span>
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> session<span class="token punctuation">-</span>ask<span class="token punctuation">-</span>delete
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> pending
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">30</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Bash
+    <span class="token key atrule">program</span><span class="token punctuation">:</span> rm
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> session<span class="token punctuation">:</span>main
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> allow<span class="token punctuation">-</span>all
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> allow
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">0</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+</code></pre><p><strong>Critical observation</strong>: The difference between <code>deny</code> and <code>pending</code> matters significantly here. Scheduled tasks get hard denials because there is no one present to approve. Subagents get <code>pending</code> because you may want to allow a specific search in the moment. Your own session gets <code>pending</code> on destructive operations as a speed bump, not a wall.</p>
+<hr>
+<h3 id="dimension-2--multi-user-team-identity">Dimension 2 — Multi-User Team Identity </h3>
+<p>When a team shares a single Nanoclaw instance, the Telegram <code>chatJid</code> already uniquely identifies each team member. The identity mapping would live in a registry:</p>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token comment"># identities.yaml</span>
+<span class="token key atrule">identities</span><span class="token punctuation">:</span>
+  <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> alice
+    <span class="token key atrule">telegram_id</span><span class="token punctuation">:</span> <span class="token string">"tg:111222333"</span>
+    <span class="token key atrule">roles</span><span class="token punctuation">:</span> <span class="token punctuation">[</span>admin<span class="token punctuation">,</span> developer<span class="token punctuation">]</span>
+  <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> bob
+    <span class="token key atrule">telegram_id</span><span class="token punctuation">:</span> <span class="token string">"tg:444555666"</span>
+    <span class="token key atrule">roles</span><span class="token punctuation">:</span> <span class="token punctuation">[</span>developer<span class="token punctuation">]</span>
+  <span class="token punctuation">-</span> <span class="token key atrule">name</span><span class="token punctuation">:</span> jane
+    <span class="token key atrule">telegram_id</span><span class="token punctuation">:</span> <span class="token string">"tg:777888999"</span>
+    <span class="token key atrule">roles</span><span class="token punctuation">:</span> <span class="token punctuation">[</span>readonly<span class="token punctuation">]</span>
+</code></pre><p>Policies match on role, not individual name, so adding a new team member is just adding them to the registry:</p>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> only<span class="token punctuation">-</span>admins<span class="token punctuation">-</span>push
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Only admins can push code
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">50</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Bash
+    <span class="token key atrule">program</span><span class="token punctuation">:</span> git
+    <span class="token key atrule">role</span><span class="token punctuation">:</span> developer       <span class="token comment"># developers blocked; admins fall through to allow-all</span>
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> readonly<span class="token punctuation">-</span>no<span class="token punctuation">-</span>writes
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Readonly users cannot write files
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">50</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Write
+    <span class="token key atrule">role</span><span class="token punctuation">:</span> readonly
+</code></pre><hr>
+<h2 id="plugin-trust">Plugin Trust </h2>
+<p>This is the harder problem and deserves careful treatment.</p>
+<h3 id="what-plugin-means-in-nanoclaw">What "plugin" means in Nanoclaw </h3>
+<p>In Nanoclaw, a "plugin" is not a formally defined unit. It can be any of:</p>
+<ul>
+<li>An npm package installed into the container</li>
+<li>A skill file placed in <code>.claude/skills/</code></li>
+<li>An MCP server added to the agent configuration</li>
+<li>A <a href="http://CLAUDE.md">CLAUDE.md</a> instruction that changes agent behavior</li>
+<li>A shell script that the agent is told to run</li>
+</ul>
+<p>These are structurally different and require different control points. There is no unified "plugin install" action to intercept — it is a collection of file writes, npm installs, and config edits.</p>
+<h3 id="two-separate-control-points">Two separate control points </h3>
+<p><strong>Installation time</strong> — who can add a plugin to the system:</p>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> only<span class="token punctuation">-</span>admins<span class="token punctuation">-</span>install<span class="token punctuation">-</span>npm
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Only admins can install npm packages
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">80</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Bash
+    <span class="token key atrule">program</span><span class="token punctuation">:</span> npm
+    <span class="token key atrule">role</span><span class="token punctuation">:</span> developer
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> only<span class="token punctuation">-</span>admins<span class="token punctuation">-</span>write<span class="token punctuation">-</span>skills
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Only admins can add skill files
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">80</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> Write
+    <span class="token key atrule">path</span><span class="token punctuation">:</span> /home/node/.claude/skills/*
+    <span class="token key atrule">role</span><span class="token punctuation">:</span> developer
+</code></pre><p><strong>Runtime</strong> — what a plugin is allowed to do once installed:</p>
+<p>A plugin that is running acts as its own subject. If a plugin has a declared identity, policies can scope what it is allowed to do:</p>
+<pre data-role="codeBlock" data-info="yaml" class="language-yaml yaml"><code><span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> deny<span class="token punctuation">-</span>all<span class="token punctuation">-</span>plugin<span class="token punctuation">-</span>actors
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Block all plugin<span class="token punctuation">-</span>originated actions by default
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> deny
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">70</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> plugin<span class="token punctuation">:</span>*
+
+<span class="token punctuation">-</span> <span class="token key atrule">id</span><span class="token punctuation">:</span> allow<span class="token punctuation">-</span>trusted<span class="token punctuation">-</span>plugin<span class="token punctuation">-</span>web
+  <span class="token key atrule">description</span><span class="token punctuation">:</span> Trusted company plugins can search the web
+  <span class="token key atrule">effect</span><span class="token punctuation">:</span> allow
+  <span class="token key atrule">priority</span><span class="token punctuation">:</span> <span class="token number">80</span>
+  <span class="token key atrule">match</span><span class="token punctuation">:</span>
+    <span class="token key atrule">tool</span><span class="token punctuation">:</span> WebSearch
+    <span class="token key atrule">subject</span><span class="token punctuation">:</span> plugin<span class="token punctuation">:</span>company_xyz<span class="token punctuation">:</span>*
+</code></pre><h3 id="the-hard-problem-identity-cannot-be-self-declared">The hard problem: identity cannot be self-declared </h3>
+<p>This is where the design gets genuinely difficult. If a plugin is allowed to declare its own identity (<code>plugin:company_xyz:research-bot</code>), then any plugin can claim to be from <code>company_xyz</code>. The policy is only meaningful if the identity claim is verified by a party the policy server trusts — not by the plugin itself.</p>
+<p>This is a trust chain problem similar to code signing. Possible approaches, from weakest to strongest:</p>
+<ol>
+<li>
+<p><strong>Admin allowlist</strong>: An admin explicitly adds a plugin to an approved list by name before it runs. The policy server checks the list. The plugin cannot self-register. This is weak (name collisions, no content verification) but practical.</p>
+</li>
+<li>
+<p><strong>Content hash</strong>: The plugin's source is hashed at install time. The policy server holds a registry of <code>hash → trusted identity</code>. A plugin's identity is the hash of its content, not its claimed name. Stronger but operationally harder.</p>
+</li>
+<li>
+<p><strong>Signed manifests</strong>: Plugins ship with a manifest signed by a known key (e.g., company_xyz's private key). The policy server verifies the signature. This is how macOS app notarization works. Strong, but requires a PKI.</p>
+</li>
+</ol>
+<p>For a practical first implementation, option 1 (admin allowlist) is the right starting point.</p>
+<hr>
+<h2 id="critical-problems-with-the-current-design">Critical Problems with the Current Design </h2>
+<h3 id="1-the-subject-is-set-inside-the-container--the-agent-can-lie">1. The subject is set inside the container — the agent can lie </h3>
+<p>The most significant architectural issue: in the current design, the hook runs inside the container where the agent runs. The <code>subject</code> field would be read from an environment variable set by the container-runner. But the agent itself has access to that environment and, more importantly, could modify the hook code (the <code>agent-runner-src</code> directory is a writable bind mount).</p>
+<p>A sufficiently motivated or compromised agent could modify its own hook to always report <code>subject: session:main</code> and bypass all subagent restrictions.</p>
+<p><strong>The fix</strong>: The subject must be stamped by the Nanoclaw host process and included in a signed or integrity-protected field that the container cannot forge. One approach: the host generates a short-lived signed token containing the subject, and the policy server verifies the signature. The container only sees the token, not the signing key.</p>
+<p>This is not a theoretical concern. It is the central security assumption the entire system rests on.</p>
+<h3 id="2-fail-closed-breaks-team-workflows">2. Fail-closed breaks team workflows </h3>
+<p>The hook currently blocks all tool calls if the policy server is unreachable. For a single user this is acceptable — Nanoclaw just fails. For a team sharing the same instance, a policy server outage takes down everyone simultaneously.</p>
+<p>This means the policy server needs to be treated as critical infrastructure: high availability, monitoring, restart-on-crash. The current in-process Python server is not designed for this. At team scale, the policy server should be a separate, always-on service.</p>
+<h3 id="3-approvals-dont-route-to-the-right-person">3. Approvals don't route to the right person </h3>
+<p>Currently all pending approvals go to a single queue visible to anyone with the UI token. In a team context, Alice's request should notify Alice's manager, not Bob. The approval UI needs notification routing — at minimum, a webhook or Telegram message to the right person when their request is pending.</p>
+<h3 id="4-the-policy-language-has-no-time-or-rate-dimension">4. The policy language has no time or rate dimension </h3>
+<p>The current <code>match</code> system handles <code>tool</code>, <code>program</code>, <code>path</code>, and (planned) <code>subject</code>. It cannot express:</p>
+<ul>
+<li>"Subagents can only search during business hours"</li>
+<li>"Each developer can make 20 web searches per day"</li>
+<li>"Allow git push, but only to branches named <code>dev/*</code>"</li>
+</ul>
+<p>These require <code>when:</code> clauses (time-of-day, rate limits) and richer parameter matching (regex, not just glob). Adding these is incremental but important before the system is used for real team policies.</p>
+<h3 id="5-the-allow-all-catch-all-inverts-the-security-model">5. The <code>allow-all</code> catch-all inverts the security model </h3>
+<p>The current <code>policies.yaml</code> has an <code>allow-all</code> rule at priority 0. This means the default is <em>allow</em> — anything not explicitly denied gets through. For a personal assistant this is pragmatic. For a team security policy this is wrong. Teams should default to <em>deny</em> and explicitly allow what is needed.</p>
+<p>These are fundamentally different operational philosophies and the system should make the choice explicit, not hide it in a catch-all rule.</p>
+<h3 id="6-policy-conflicts-are-silent">6. Policy conflicts are silent </h3>
+<p>If two rules at the same priority both match a request, the first one wins silently. In a team-managed policy file with many contributors, this is a source of bugs. The system should detect and surface conflicts — at minimum in the UI, ideally blocking a policy file that contains them.</p>
+<hr>
+<h2 id="recommended-build-order">Recommended Build Order </h2>
+<p>Given the above, here is a pragmatic sequence:</p>
+<p><strong>Phase 3a — Autonomous actor identities (single user, no team)</strong><br>
+Implement <code>isScheduledTask</code> and <code>isMain</code> → subject mapping in the container-runner. Wire the subject through the hook and policy engine. This gives the most security value for the least complexity and does not require solving the identity-verification problem (there is only one human).</p>
+<p><strong>Phase 3b — Approval routing</strong><br>
+Add a notification mechanism (Telegram message back to the requesting group) when an approval is pending. Currently the agent just hangs silently. The user should know why Nanoclaw stopped and where to go to approve it.</p>
+<p><strong>Phase 3c — Admin allowlist for plugins</strong><br>
+Define a plugin registry (a simple YAML list of approved plugin names/hashes). The policy server checks the registry when a plugin-originated action is evaluated. No signing infrastructure needed yet.</p>
+<p><strong>Phase 4a — Multi-user team identity</strong><br>
+Add <code>identities.yaml</code> with Telegram ID → name/role mappings. Wire the chatJid → role resolution into the container-runner → hook → policy server chain. Tackle the subject-forgery problem with a host-signed token before deploying to real teams.</p>
+<p><strong>Phase 4b — Richer policy language</strong><br>
+Add <code>when:</code> clauses, rate limiting, and regex parameter matching. This is the point where the policy server starts to look like a real authorization system rather than a simple rule evaluator.</p>
+<hr>
+<h2 id="open-questions">Open Questions </h2>
+<ol>
+<li>
+<p><strong>Who administers policies in a team?</strong> Is it a single admin, or do team leads manage policies for their own groups? What is the change control process for modifying <code>policies.yaml</code>?</p>
+</li>
+<li>
+<p><strong>How are approval decisions audited?</strong> Currently approvals are in-memory and lost on restart (the audit log persists, but approval resolution reasons are not yet linked to audit entries). For a team, who approved what and when needs to be permanent and attributable.</p>
+</li>
+<li>
+<p><strong>What is the right granularity for plugin identity?</strong> Is <code>plugin:company_xyz:*</code> meaningful, or does it need to be per-version (<code>plugin:company_xyz:research-bot:v1.2</code>)?</p>
+</li>
+<li>
+<p><strong>How does the policy system handle the Claude Agent SDK's own tool-calling behavior?</strong> The SDK itself may make HTTP calls or write temporary files as part of normal operation. These should be excluded from policy evaluation, but the current system has no way to distinguish SDK-internal operations from agent-directed ones.</p>
+</li>
+<li>
+<p><strong>Should policy violations be visible to the agent?</strong> Currently when a tool is blocked, the agent sees a generic error. Should it see the policy reason ("blocked: subagents cannot delete files") or a minimal error ("operation not permitted")? Seeing the reason helps debugging but could also help a compromised agent craft requests that evade the policy.</p>
+</li>
+</ol>
+
+      </div>
+      
+      
+    
+    
+    
+    
+    
+    
+  
+    </body></html>

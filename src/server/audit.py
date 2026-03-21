@@ -1,11 +1,14 @@
 """
-Audit log — append-only in-memory log of every /check request.
+Audit log — append-only log of every /check request.
+Persists to a JSONL file so entries survive server restarts.
 """
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 @dataclass
@@ -33,9 +36,39 @@ class AuditEntry:
 
 
 class AuditLog:
-    def __init__(self, max_entries: int = 1000) -> None:
-        self._entries: list[AuditEntry] = []
+    def __init__(self, max_entries: int = 1000, log_file: Path | None = None) -> None:
         self._max = max_entries
+        self._log_file = log_file
+        self._entries: list[AuditEntry] = []
+        if log_file:
+            self._load(log_file)
+
+    def _load(self, path: Path) -> None:
+        """Read existing entries from disk on startup."""
+        if not path.exists():
+            return
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                    self._entries.append(AuditEntry(
+                        id=d["id"],
+                        timestamp=datetime.fromisoformat(d["timestamp"]),
+                        tool=d["tool"],
+                        params=d["params"],
+                        verdict=d["verdict"],
+                        rule_id=d.get("rule_id"),
+                        reason=d["reason"],
+                        approval_id=d.get("approval_id"),
+                    ))
+                except Exception:
+                    pass  # skip malformed lines
+        # Trim to max
+        if len(self._entries) > self._max:
+            self._entries = self._entries[-self._max:]
 
     def append(
         self,
@@ -59,6 +92,12 @@ class AuditLog:
         self._entries.append(entry)
         if len(self._entries) > self._max:
             self._entries = self._entries[-self._max:]
+
+        # Persist to disk
+        if self._log_file:
+            with open(self._log_file, "a") as f:
+                f.write(json.dumps(entry.to_dict()) + "\n")
+
         return entry
 
     def recent(self, limit: int = 100) -> list[AuditEntry]:

@@ -17,10 +17,11 @@ app = FastAPI(title="OC Policy Server", version="0.4.0")
 
 AGENT_TOKEN = os.environ["OC_POLICY_AGENT_TOKEN"]
 POLICY_FILE = Path(os.environ.get("OC_POLICY_FILE", Path(__file__).parent / "policies.yaml"))
+AUDIT_FILE  = Path(os.environ.get("OC_AUDIT_FILE",  Path(__file__).parent / "audit.jsonl"))
 
 engine    = PolicyEngine(POLICY_FILE)
 approvals = ApprovalStore()
-audit     = AuditLog()
+audit     = AuditLog(log_file=AUDIT_FILE)
 
 # ── Static UI ─────────────────────────────────────────────────────────────────
 STATIC_DIR = Path(__file__).parent / "static"
