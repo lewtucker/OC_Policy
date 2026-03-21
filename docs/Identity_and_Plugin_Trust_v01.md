@@ -46,14 +46,14 @@ Example policies for this model:
 ```yaml
 # Scheduled tasks: hard limits, no approval path
 - id: scheduled-no-web
-  effect: deny
+  result: deny
   priority: 50
   match:
     tool: WebSearch
     subject: task:scheduled
 
 - id: scheduled-no-delete
-  effect: deny
+  result: deny
   priority: 50
   match:
     tool: Bash
@@ -62,14 +62,14 @@ Example policies for this model:
 
 # Subagents: approval required for internet and writes
 - id: subagent-ask-web
-  effect: pending
+  result: pending
   priority: 40
   match:
     tool: WebSearch
     subject: agent:subagent
 
 - id: subagent-no-delete
-  effect: deny
+  result: deny
   priority: 40
   match:
     tool: Bash
@@ -78,7 +78,7 @@ Example policies for this model:
 
 # Human session: soft speed bump on destructive ops
 - id: session-ask-delete
-  effect: pending
+  result: pending
   priority: 30
   match:
     tool: Bash
@@ -86,7 +86,7 @@ Example policies for this model:
     subject: session:main
 
 - id: allow-all
-  effect: allow
+  result: allow
   priority: 0
   match: {}
 ```
@@ -118,7 +118,7 @@ Policies match on role, not individual name, so adding a new team member is just
 ```yaml
 - id: only-admins-push
   description: Only admins can push code
-  effect: deny
+  result: deny
   priority: 50
   match:
     tool: Bash
@@ -127,7 +127,7 @@ Policies match on role, not individual name, so adding a new team member is just
 
 - id: readonly-no-writes
   description: Readonly users cannot write files
-  effect: deny
+  result: deny
   priority: 50
   match:
     tool: Write
@@ -159,7 +159,7 @@ These are structurally different and require different control points. There is 
 ```yaml
 - id: only-admins-install-npm
   description: Only admins can install npm packages
-  effect: deny
+  result: deny
   priority: 80
   match:
     tool: Bash
@@ -168,7 +168,7 @@ These are structurally different and require different control points. There is 
 
 - id: only-admins-write-skills
   description: Only admins can add skill files
-  effect: deny
+  result: deny
   priority: 80
   match:
     tool: Write
@@ -183,14 +183,14 @@ A plugin that is running acts as its own subject. If a plugin has a declared ide
 ```yaml
 - id: deny-all-plugin-actors
   description: Block all plugin-originated actions by default
-  effect: deny
+  result: deny
   priority: 70
   match:
     subject: plugin:*
 
 - id: allow-trusted-plugin-web
   description: Trusted company plugins can search the web
-  effect: allow
+  result: allow
   priority: 80
   match:
     tool: WebSearch

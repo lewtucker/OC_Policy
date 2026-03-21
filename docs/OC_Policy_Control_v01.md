@@ -622,7 +622,7 @@ The Policy Server writes these on consent, tagged with provenance so the UI can 
 
 ```yaml
 - id: plugin-github-skill-exec-git
-  effect: allow
+  result: allow
   tool: exec
   match: { program: git }
   source: plugin-install/github-skill    # provenance — where the rule came from
@@ -630,7 +630,7 @@ The Policy Server writes these on consent, tagged with provenance so the UI can 
   revocable: true                        # uninstalling the plugin removes this
 
 - id: plugin-github-skill-browser-github
-  effect: allow
+  result: allow
   tool: browser
   match: { domain: [github.com, api.github.com] }
   source: plugin-install/github-skill
