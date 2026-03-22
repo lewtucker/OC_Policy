@@ -27,11 +27,25 @@ To use a specific token instead of a generated one:
 OC_POLICY_AGENT_TOKEN=mytoken ./start.sh
 ```
 
-To test without a browser, run the automated test suite in a second terminal:
+## Testing
+
+**Pytest suite** (self-contained, no running server needed):
 
 ```bash
-OC_POLICY_AGENT_TOKEN=mytoken python3 src/server/test_server.py
+cd src/server
+python -m pytest test_policy_suite.py -v
 ```
+
+59 tests across 8 categories: auth & authorization, protected rules, policy evaluation, policy analyzer, approval flow, audit trail, policy CRUD, and identities. Tests create their own temp fixtures and clean up after themselves.
+
+**Rule smoke tests** (requires running server):
+
+```bash
+cd src/server
+OC_POLICY_AGENT_TOKEN=mytoken ./test_rules.sh
+```
+
+17 `/check` calls across all identities verifying expected verdicts.
 
 See [docs/Testing_Without_OpenClaw.md](docs/Testing_Without_OpenClaw.md) for a full walkthrough.
 
@@ -66,27 +80,33 @@ See [docs/OC_Policy_Control_v01.md](docs/OC_Policy_Control_v01.md) for the full 
 
 ## Status
 
-Phases 1, 2, and 2.5 complete. 27/27 tests passing.
+Phase 3 (security hardening + policy intelligence). 59 pytest tests passing.
 
-- Policy server running with YAML-backed rules, approvals queue, and audit log
-- Web UI served locally from FastAPI at `http://localhost:8080`
-- TypeScript enforcement plugin built; pending connection to a live OpenClaw instance
-- See [docs/Progress_Report_v02.md](docs/Progress_Report_v02.md) for full status
+- Two-token auth split (agent vs admin), per-person API tokens, admin-only policy writes
+- Protected rules, policy analyzer (Tier 1 + Tier 2), NL policy chat panel
+- Identity-aware rule matching (person, group), approval flow with subject attribution
+- See [docs/Status.md](docs/Status.md) for current status and [docs/Progress_Report_v05.md](docs/Progress_Report_v05.md) for details
 
 ## Repository layout
 
 ```
 docs/        Design documents, specs, and progress reports
-plans/       Implementation plans by phase
 ui/          Original UI mockup source (static HTML)
 src/plugin/  OpenClaw TypeScript enforcement plugin
 src/server/  Python FastAPI policy server + web UI
-  start.sh         One-command server startup
-  server.py        FastAPI application
-  policy_engine.py Rule parser and evaluator
-  policies.yaml    Policy rules (edit directly or via UI)
-  approvals.py     Approval queue
-  audit.py         Audit log
-  test_server.py   Automated test harness (dummy OpenClaw)
-  static/          Web UI (served at http://localhost:8080)
+  start.sh              One-command server startup
+  server.py             FastAPI application
+  policy_engine.py      Rule parser and evaluator
+  policy_analyzer.py    Tier 1+2 policy analysis engine
+  identity.py           Identity store (token/telegram → person)
+  policies.yaml         Policy rules (edit directly or via UI)
+  identities.yaml       People, groups, API tokens (gitignored)
+  approvals.py          Approval queue
+  audit.py              Audit log
+  nl_policy.py          NL policy chat (Claude-powered)
+  conftest.py           Pytest fixtures (self-contained)
+  test_policy_suite.py  Pytest test suite (59 tests)
+  test_server.py        Legacy acceptance test harness
+  test_rules.sh         Rule smoke tests (17 checks)
+  static/               Web UI (served at http://localhost:8080)
 ```

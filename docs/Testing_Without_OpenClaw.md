@@ -78,63 +78,74 @@ After connecting, the Dashboard loads with live rule counts and an empty activit
 
 ---
 
-## Step 3 — Run the Automated Test Suite
+## Step 3 — Run the Pytest Suite (no running server needed)
 
-Open a second terminal and run the dummy OC harness. This sends 27 requests to the
-server that simulate exactly what the OpenClaw plugin would send:
+The pytest suite is **self-contained** — it creates temporary policies, identities, and
+audit files, sets env vars, and tests against an in-process FastAPI `TestClient`. No
+running server required.
 
 ```bash
-OC_POLICY_AGENT_TOKEN=mysecrettoken python3 /Users/lewtucker/Documents/dev/OC_Policy/src/server/test_server.py
+cd src/server
+python -m pytest test_policy_suite.py -v
 ```
 
-Expected output:
+Expected output (59 tests across 8 categories):
 
 ```
-=== OC Policy Server — Phase 2 acceptance tests ===
-    Server: http://localhost:8080
+test_policy_suite.py::TestAuth::test_health_no_auth PASSED
+test_policy_suite.py::TestAuth::test_check_requires_agent_token PASSED
+test_policy_suite.py::TestAuth::test_admin_token_grants_access PASSED
+...
+test_policy_suite.py::TestProtectedRules::test_cannot_delete_protected_rule PASSED
+test_policy_suite.py::TestPolicyEvaluation::test_deny_rm_for_everyone PASSED
+test_policy_suite.py::TestPolicyAnalyzer::test_shadow_detection PASSED
+test_policy_suite.py::TestApprovalFlow::test_approve_flow PASSED
+test_policy_suite.py::TestAuditTrail::test_audit_records_check PASSED
+test_policy_suite.py::TestPolicyCRUD::test_add_rule PASSED
+test_policy_suite.py::TestIdentities::test_list_identities PASSED
+...
+========================= 59 passed in 0.5s =========================
+```
 
-── Baseline rules ──────────────────────────────────────────────
-  1. git exec → ALLOW (from YAML)        [PASS]
-  2. ls exec → DENY (no matching rule)   [PASS]
-  3. unknown tool → DENY                 [PASS]
-  4. git with args → ALLOW               [PASS]
-  5. empty command → DENY                [PASS]
+| Category | What it covers |
+| --- | --- |
+| Auth & Authorization (12) | Token validation, role checks, `/me` endpoint |
+| Protected Rules (3) | Delete/update blocked, visible in list |
+| Policy Evaluation (9) | Deny/allow/pending verdicts, priority ordering, anonymous identity |
+| Policy Analyzer (6) | Shadow, conflict, orphan, uncovered group, unused rule detection |
+| Approval Flow (9) | Approve/deny, double-resolve prevention, subject_id |
+| Audit Trail (5) | Check logging, subject_id, approval_id, limit param |
+| Policy CRUD (11) | Add/update/delete, duplicates, inline warnings, non-admin blocked |
+| Identities (4) | List, groups, admin check, reload |
 
-── Policy CRUD ─────────────────────────────────────────────────
-  6.  GET /policies lists rules           [PASS]
-  7.  POST /policies adds allow-npm       [PASS]
-  8.  npm exec → ALLOW after adding       [PASS]
-  9.  DELETE /policies/allow-npm          [PASS]
-  10. npm exec → DENY after removing      [PASS]
+---
 
-── Priority ────────────────────────────────────────────────────
-  11. Add allow-wget (priority 5)         [PASS]
-  12. wget → ALLOW                        [PASS]
-  13. Add deny-wget (priority 50)         [PASS]
-  14. wget → DENY (high-priority wins)    [PASS]
-  15. Cleanup                             [PASS]
-  16. Reload from disk                    [PASS]
+## Step 3b — Run the Legacy Test Harness (requires running server)
 
-── Approvals queue ─────────────────────────────────────────────
-  17. curl → PENDING                      [PASS]
-  18. GET /approvals shows record         [PASS]
-  19. GET /approvals/{id}                 [PASS]
-  20. Approve → allow                     [PASS]
-  21. Record shows resolved               [PASS]
-  22. curl → PENDING (second)             [PASS]
-  23. Deny with reason                    [PASS]
-  24. Re-resolve → 404                    [PASS]
+The original acceptance test script (`test_server.py`) sends 27 HTTP requests to a
+**running** server. Start the server first (Step 1), then:
 
-── Audit log ───────────────────────────────────────────────────
-  25. GET /audit returns entries          [PASS]
-  26. Entries have required fields        [PASS]
-  27. Includes pending entries            [PASS]
-
-=== Results: 27/27 passed ===
+```bash
+OC_POLICY_AGENT_TOKEN=mysecrettoken python3 src/server/test_server.py
 ```
 
 While this runs, switch to the browser — the Dashboard activity feed updates within
 10 seconds showing a mix of allow, deny, and pending entries.
+
+---
+
+## Step 3c — Run the Rule Smoke Tests (requires running server)
+
+`test_rules.sh` sends 17 `/check` calls covering all identities (Lew, Alice, Bob,
+anonymous) and key actions, verifying expected verdicts:
+
+```bash
+cd src/server
+OC_POLICY_AGENT_TOKEN=mytoken ./test_rules.sh
+```
+
+**Note**: use the **agent token** (the one passed to `OC_POLICY_AGENT_TOKEN` when starting
+the server), not a personal API token.
 
 ---
 
