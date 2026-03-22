@@ -32,6 +32,13 @@
 | [Progress_Report_v02.md](Progress_Report_v02.md) | Phases 1, 2, and 2.5 — enforcement plugin, policy engine, approvals queue, and audit log |
 | [Progress_Report_v01.md](Progress_Report_v01.md) | Phase 1 — initial enforcement proof of concept |
 
+## Plans
+
+| Document | Description |
+| --- | --- |
+| [Plan_NL_Policy_Authoring_v01.md](Plan_NL_Policy_Authoring_v01.md) | Natural language policy authoring — let users express rules in plain English; Phase 1 as a Claude skill |
+| [Plan_Identity_Phase3b.md](Plan_Identity_Phase3b.md) | Identity/person support implementation plan (Phase 3b — complete) |
+
 ## Guides
 
 | Document | Description |
