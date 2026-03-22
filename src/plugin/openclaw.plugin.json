@@ -1,0 +1,46 @@
+{
+  "id": "oc-policy",
+  "name": "OC Policy Enforcement",
+  "description": "Checks every tool call against the OC Policy Server before execution. Returns allow/deny/pending verdicts with optional human approval polling.",
+  "version": "1.0.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "policyServerUrl": {
+        "type": "string",
+        "description": "URL of the OC Policy Server (e.g. https://lew-mac-2023.tail9284d9.ts.net)"
+      },
+      "agentToken": {
+        "type": "string",
+        "description": "Agent API token for the policy server (read-only — can only call /check and /approvals)"
+      },
+      "approvalTimeoutMs": {
+        "type": "number",
+        "description": "How long to poll for human approval before timing out (default: 120000 ms)",
+        "default": 120000
+      },
+      "channelId": {
+        "type": ["string", "null"],
+        "description": "Channel ID for identity resolution (e.g. tg:6741893378). Null uses token-based identity.",
+        "default": null
+      }
+    }
+  },
+  "uiHints": {
+    "policyServerUrl": {
+      "label": "Policy Server URL",
+      "placeholder": "https://your-host.tail9284d9.ts.net"
+    },
+    "agentToken": {
+      "label": "Agent Token",
+      "sensitive": true
+    },
+    "approvalTimeoutMs": {
+      "label": "Approval Timeout (ms)"
+    },
+    "channelId": {
+      "label": "Channel ID (for identity)"
+    }
+  }
+}
