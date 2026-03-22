@@ -47,6 +47,7 @@
 | Document | Description |
 | --- | --- |
 | [Deployment.md](Deployment.md) | Full deployment guide — system architecture, what lives where, nanoclaw integration, caching gotcha, step-by-step new installation, updating the hook |
+| [OpenClaw_Plugin_Integration.md](OpenClaw_Plugin_Integration.md) | OpenClaw plugin integration — plugin system, before_tool_call hook, kyle-mac deployment, Tailscale networking, update and troubleshooting guide |
 | [Demo.md](Demo.md) | Five-minute walkthrough of the system without a live OpenClaw instance |
 | [Testing_Without_OpenClaw.md](Testing_Without_OpenClaw.md) | Step-by-step guide for running and testing the policy server using the dummy harness |
 
