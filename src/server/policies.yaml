@@ -1,19 +1,49 @@
 version: 1
 policies:
-- id: ask-websearch
-  description: Require approval before any web search
+- id: 008
+  name: Curl Request
+  description: Force approval for curl requests
+  effect: pending
+  priority: 30
+  match:
+    tool: Bash
+    program: curl
+- id: '004'
+  name: ask-bash
+  description: Require approval before running any shell command
   effect: pending
   priority: 20
   match:
-    tool: WebSearch
-- id: ask-webfetch
+    tool: Bash
+- id: '005'
+  name: ask-webfetch
   description: Require approval before fetching any URL
   effect: pending
   priority: 20
   match:
     tool: WebFetch
-- id: allow-all
+- id: '006'
+  name: ask-websearch
+  description: Require approval before any web search
+  effect: pending
+  priority: 20
+  match:
+    tool: WebSearch
+- id: '003'
+  name: ask-everything
+  description: Require approval for any unmatched action
+  effect: pending
+  priority: 1
+  match: {}
+- id: '002'
+  name: allow-all
   description: Allow everything not matched by a higher-priority rule
   effect: allow
   priority: 0
+  match: {}
+- id: '001'
+  name: deny all unknown
+  description: Deny anything that isn't recognized
+  effect: deny
+  priority: -1
   match: {}

@@ -46,6 +46,7 @@ class CheckResponse(BaseModel):
 
 class RuleIn(BaseModel):
     id: str
+    name: str = ""
     description: str = ""
     effect: str
     priority: int = 0
@@ -147,6 +148,17 @@ async def add_policy(rule: RuleIn, authorization: str = Header(...)):
         raise HTTPException(status_code=409, detail=str(e))
     print(f"[POLICY] added rule '{new_rule.id}'")
     return new_rule.to_dict()
+
+
+@app.put("/policies/{rule_id}")
+async def update_policy(rule_id: str, rule: RuleIn, authorization: str = Header(...)):
+    require_agent_token(authorization)
+    try:
+        updated = engine.update(rule_id, rule.model_dump())
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    print(f"[POLICY] updated rule '{rule_id}'")
+    return updated.to_dict()
 
 
 @app.delete("/policies/{rule_id}", status_code=204)

@@ -5,6 +5,10 @@ A policy management system for [OpenClaw](https://openclaw.dev) — an autonomou
 ## Quick Start
 
 **Requirements**: Python ≥ 3.11
+put the following in your ~/.zshrc
+export OC_POLICY_SERVER_URL=http://host.docker.internal:8080
+export OC_POLICY_AGENT_TOKEN=ltdemotoken
+
 
 ```bash
 # 1. Install dependencies (once)

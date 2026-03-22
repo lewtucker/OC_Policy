@@ -20,16 +20,21 @@ class Rule:
     effect: Effect
     match: dict = field(default_factory=dict)
     priority: int = 0
+    name: str = ""
     description: str = ""
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "id": self.id,
+            "name": self.name,
             "description": self.description,
             "effect": self.effect,
             "priority": self.priority,
             "match": self.match,
         }
+        if not self.name:
+            del d["name"]
+        return d
 
 
 class PolicyEngine:
@@ -55,6 +60,7 @@ class PolicyEngine:
                 effect=p["effect"],
                 match=p.get("match", {}),
                 priority=p.get("priority", 0),
+                name=p.get("name", ""),
                 description=p.get("description", ""),
             )
             for p in data.get("policies", [])
@@ -88,12 +94,31 @@ class PolicyEngine:
             effect=rule_data["effect"],
             match=rule_data.get("match", {}),
             priority=rule_data.get("priority", 0),
+            name=rule_data.get("name", ""),
             description=rule_data.get("description", ""),
         )
         self._rules.append(rule)
         self._sort()
         self._save()
         return rule
+
+    def update(self, rule_id: str, rule_data: dict) -> Rule:
+        """Update an existing rule in-place and persist. Raises KeyError if not found."""
+        for i, r in enumerate(self._rules):
+            if r.id == rule_id:
+                updated = Rule(
+                    id=rule_id,
+                    effect=rule_data["effect"],
+                    match=rule_data.get("match", {}),
+                    priority=rule_data.get("priority", 0),
+                    name=rule_data.get("name", ""),
+                    description=rule_data.get("description", ""),
+                )
+                self._rules[i] = updated
+                self._sort()
+                self._save()
+                return updated
+        raise KeyError(f"Rule '{rule_id}' not found")
 
     def remove(self, rule_id: str) -> bool:
         """Remove a rule by ID and persist. Returns True if found."""

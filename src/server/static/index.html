@@ -8,20 +8,20 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #09090b;
-      --surface:   #18181b;
-      --surface2:  #27272a;
-      --border:    #3f3f46;
+      --bg:        #d4d4d8;
+      --surface:   #ffffff;
+      --surface2:  #e4e4e7;
+      --border:    #d4d4d8;
       --muted:     #71717a;
-      --text:      #fafafa;
-      --text-dim:  #a1a1aa;
-      --green:     #22c55e;
+      --text:      #18181b;
+      --text-dim:  #52525b;
+      --green:     #16a34a;
       --green-dim: #15803d;
-      --red:       #ef4444;
+      --red:       #dc2626;
       --red-dim:   #991b1b;
-      --amber:     #f59e0b;
+      --amber:     #d97706;
       --amber-dim: #92400e;
-      --blue:      #3b82f6;
+      --blue:      #2563eb;
       --blue-dim:  #1d4ed8;
       --mono:      'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
       --sans:      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -81,6 +81,8 @@
     .pill.allow  { background: rgba(34,197,94,.15);  color: var(--green); }
     .pill.deny   { background: rgba(239,68,68,.15);  color: var(--red); }
     .pill.pending { background: rgba(245,158,11,.15); color: var(--amber); }
+    .pill.approved { background: rgba(34,197,94,.15); color: var(--green); }
+    .pill.denied  { background: rgba(239,68,68,.15); color: var(--red); }
 
     /* ── Buttons ── */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; }
@@ -123,7 +125,7 @@
     .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 18px; }
     .form-row { margin-bottom: 14px; }
     label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 5px; }
-    input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 13px; font-family: var(--sans); }
+    input, select, textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; font-size: 13px; font-family: var(--sans); }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
     select option { background: var(--surface); }
     .form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -206,7 +208,7 @@
           </div>
           <div class="card">
             <table>
-              <thead><tr><th>Rule</th><th>Effect</th><th>Match</th><th>Priority</th></tr></thead>
+              <thead><tr><th>Rule</th><th>Result</th><th>Match</th><th>Priority</th></tr></thead>
               <tbody id="dash-policy-tbody"><tr><td colspan="4" class="muted" style="padding:20px;text-align:center">Loading…</td></tr></tbody>
             </table>
           </div>
@@ -239,14 +241,14 @@
   <div class="page" id="page-policies">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:0">
       <div><div class="page-title">Policies</div><div class="page-sub">Rules evaluated in priority order; first match wins.</div></div>
-      <button class="btn btn-primary" style="margin-top:24px" onclick="openModal('add-policy-modal')">+ Add Rule</button>
+      <button class="btn btn-primary" style="margin-top:24px" onclick="clearAddPolicyForm();openModal('add-policy-modal')">+ Add Rule</button>
     </div>
     <div class="page-body">
       <div class="banner error" id="policies-error"></div>
       <div class="card">
         <table>
-          <thead><tr><th>ID</th><th>Description</th><th>Effect</th><th>Match</th><th>Priority</th><th></th></tr></thead>
-          <tbody id="policy-tbody"><tr><td colspan="6" class="muted" style="padding:20px;text-align:center">Loading…</td></tr></tbody>
+          <thead><tr><th>Name</th><th>ID</th><th>Description</th><th>Result</th><th>Match</th><th>Priority</th><th></th></tr></thead>
+          <tbody id="policy-tbody"><tr><td colspan="7" class="muted" style="padding:20px;text-align:center">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -291,7 +293,7 @@
 <!-- Add Policy -->
 <div class="modal-overlay" id="add-policy-modal" onclick="closeModalOnOverlay(event,'add-policy-modal')">
   <div class="modal">
-    <div class="modal-title">Add Policy Rule</div>
+    <div class="modal-title" id="policy-modal-title">Add Policy Rule</div>
     <div class="form-row-inline">
       <div class="form-row" style="margin-bottom:0">
         <label>Rule ID *</label>
@@ -303,11 +305,16 @@
       </div>
     </div>
     <div class="form-row" style="margin-top:14px">
+      <label>Display Name</label>
+      <input type="text" id="new-name" placeholder="Allow NPM Commands" />
+      <div class="form-hint">Human-friendly name (optional)</div>
+    </div>
+    <div class="form-row">
       <label>Description</label>
       <input type="text" id="new-description" placeholder="Allow npm commands" />
     </div>
     <div class="form-row">
-      <label>Effect *</label>
+      <label>Result *</label>
       <select id="new-effect">
         <option value="allow">allow — permit the action</option>
         <option value="deny">deny — block the action</option>
@@ -335,13 +342,22 @@
     <div class="banner error" id="add-policy-error"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('add-policy-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitAddPolicy()">Add Rule</button>
+      <button class="btn btn-primary" id="policy-modal-submit" onclick="submitAddPolicy()">Add Rule</button>
     </div>
   </div>
 </div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
+// Accept token from ?token= query param (auto-saves to localStorage)
+const _urlParams = new URLSearchParams(window.location.search);
+if (_urlParams.has('token')) {
+  localStorage.setItem('oc_token', _urlParams.get('token'));
+  // Clean the token from the URL so it's not visible/bookmarked
+  const _clean = new URL(window.location);
+  _clean.searchParams.delete('token');
+  window.history.replaceState({}, '', _clean);
+}
 let TOKEN      = localStorage.getItem('oc_token') || '';
 let SERVER_URL = localStorage.getItem('oc_server_url') || window.location.origin;
 let pollTimer  = null;
@@ -423,11 +439,18 @@ async function loadDashboard() {
   const dot   = document.getElementById('status-dot');
   const label = document.getElementById('status-label');
   try {
-    const [health, policies, audit] = await Promise.all([
+    const [health, policies, audit, approvalsData] = await Promise.all([
       api('GET', '/health'),
       api('GET', '/policies'),
       api('GET', '/audit?limit=20'),
+      api('GET', '/approvals'),
     ]);
+
+    // Build lookup: approval_id → resolved verdict
+    const approvalMap = {};
+    for (const a of approvalsData.approvals) {
+      if (a.verdict) approvalMap[a.id] = a.verdict;
+    }
 
     dot.className = 'status-dot online';
     label.textContent = SERVER_URL.replace(/https?:\/\//, '');
@@ -457,13 +480,22 @@ async function loadDashboard() {
     if (!audit.entries.length) {
       feed.innerHTML = '<div class="muted" style="padding:20px;text-align:center">No activity yet</div>';
     } else {
-      feed.innerHTML = audit.entries.map(e => `
+      feed.innerHTML = audit.entries.map(e => {
+        let displayVerdict = e.verdict;
+        let pillClass = e.verdict;
+        if (e.verdict === 'pending' && e.approval_id && approvalMap[e.approval_id]) {
+          const resolved = approvalMap[e.approval_id];
+          displayVerdict = resolved === 'allow' ? 'approved' : 'denied';
+          pillClass = displayVerdict;
+        }
+        return `
         <div class="feed-row">
-          <div class="feed-verdict"><span class="pill ${e.verdict}">${e.verdict}</span></div>
+          <div class="feed-verdict"><span class="pill ${pillClass}" ${pillClass === 'pending' ? 'style="cursor:pointer" onclick="showPage(\'approvals\',document.querySelector(\'[onclick*=approvals]\')); return false;"' : ''}>${displayVerdict}</span></div>
           <div class="feed-cmd">${esc(e.tool === 'exec' ? e.params.command || '—' : e.tool + ' ' + JSON.stringify(e.params))}</div>
           <div class="feed-rule">${esc(e.rule_id || '—')}</div>
           <div class="feed-time">${relTime(e.timestamp)}</div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
     document.getElementById('dash-error').className = 'banner';
@@ -518,7 +550,11 @@ async function loadApprovals() {
 
     document.getElementById('approvals-error').className = 'banner';
   } catch(e) {
-    showBanner(document.getElementById('approvals-error'), 'Could not load approvals.');
+    // Only show error if we don't already have content displayed
+    const list = document.getElementById('approval-list');
+    if (!list.children.length) {
+      list.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div>Nothing pending</div>';
+    }
   }
 }
 
@@ -549,17 +585,18 @@ async function loadPolicies() {
     const result = await api('GET', '/policies');
     const rules  = result.policies;
     if (!rules.length) {
-      data.innerHTML = '<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">No policies defined</td></tr>';
+      data.innerHTML = '<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">No policies defined</td></tr>';
       return;
     }
     data.innerHTML = rules.map(r => `
       <tr>
-        <td class="mono" style="font-size:12px">${esc(r.id)}</td>
+        <td style="font-size:13px">${esc(r.name || r.id)}</td>
+        <td class="mono muted" style="font-size:11px">${esc(r.id)}</td>
         <td class="dim">${esc(r.description || '—')}</td>
         <td><span class="pill ${r.effect}">${r.effect}</span></td>
         <td class="mono muted" style="font-size:11px">${matchLabel(r.match)}</td>
         <td class="muted">${r.priority}</td>
-        <td><button class="btn-icon" onclick="deletePolicy('${r.id}',this)" title="Delete rule">✕</button></td>
+        <td style="white-space:nowrap"><button class="btn-icon" onclick="editPolicy('${esc(r.id)}')" title="Edit rule">✎</button> <button class="btn-icon" onclick="deletePolicy('${r.id}',this)" title="Delete rule">✕</button></td>
       </tr>`).join('');
     document.getElementById('policies-error').className = 'banner';
   } catch(e) {
@@ -580,8 +617,74 @@ async function deletePolicy(id, btn) {
   }
 }
 
+let editingRuleId = null;
+
+async function editPolicy(ruleId) {
+  const result = await api('GET', '/policies');
+  const rule = result.policies.find(r => r.id === ruleId);
+  if (!rule) return;
+
+  editingRuleId = ruleId;
+  document.getElementById('new-id').value = rule.id;
+  document.getElementById('new-id').disabled = false;
+  document.getElementById('new-name').value = rule.name || '';
+  document.getElementById('new-description').value = rule.description || '';
+  document.getElementById('new-effect').value = rule.effect;
+  document.getElementById('new-priority').value = rule.priority;
+  document.getElementById('new-tool').value = (rule.match && rule.match.tool) || '';
+  document.getElementById('new-program').value = (rule.match && rule.match.program) || '';
+  document.getElementById('new-path').value = (rule.match && rule.match.path) || '';
+
+  document.getElementById('policy-modal-title').textContent = 'Edit Policy Rule';
+  document.getElementById('policy-modal-submit').textContent = 'Save Changes';
+  document.getElementById('policy-modal-submit').onclick = submitEditPolicy;
+  openModal('add-policy-modal');
+}
+
+async function submitEditPolicy() {
+  const newId = document.getElementById('new-id').value.trim();
+  const name = document.getElementById('new-name').value.trim();
+  const desc = document.getElementById('new-description').value.trim();
+  const effect   = document.getElementById('new-effect').value;
+  const priority = parseInt(document.getElementById('new-priority').value) || 0;
+  const tool    = document.getElementById('new-tool').value.trim();
+  const program = document.getElementById('new-program').value.trim();
+  const path    = document.getElementById('new-path').value.trim();
+  const err     = document.getElementById('add-policy-error');
+  err.className = 'banner';
+
+  if (!newId) { showBanner(err, 'Rule ID is required.'); return; }
+
+  const match = {};
+  if (tool)    match.tool    = tool;
+  if (program) match.program = program;
+  if (path)    match.path    = path;
+
+  try {
+    if (newId !== editingRuleId) {
+      // ID changed — verify new ID doesn't exist, then delete old + create new
+      const existing = await api('GET', '/policies');
+      if (existing.policies.some(r => r.id === newId)) {
+        showBanner(err, 'A rule with ID "' + newId + '" already exists.');
+        return;
+      }
+      await api('DELETE', '/policies/' + editingRuleId);
+      await api('POST', '/policies', { id: newId, name, description: desc, effect, priority, match });
+    } else {
+      await api('PUT', '/policies/' + editingRuleId, { id: editingRuleId, name, description: desc, effect, priority, match });
+    }
+    closeModal('add-policy-modal');
+    clearAddPolicyForm();
+    loadPolicies();
+    loadDashboard();
+  } catch(e) {
+    showBanner(err, 'Failed to update rule. New ID may already exist.');
+  }
+}
+
 async function submitAddPolicy() {
   const id   = document.getElementById('new-id').value.trim();
+  const name = document.getElementById('new-name').value.trim();
   const desc = document.getElementById('new-description').value.trim();
   const effect   = document.getElementById('new-effect').value;
   const priority = parseInt(document.getElementById('new-priority').value) || 0;
@@ -599,7 +702,7 @@ async function submitAddPolicy() {
   if (path)    match.path    = path;
 
   try {
-    await api('POST', '/policies', { id, description: desc, effect, priority, match });
+    await api('POST', '/policies', { id, name, description: desc, effect, priority, match });
     closeModal('add-policy-modal');
     clearAddPolicyForm();
     loadPolicies();
@@ -610,9 +713,14 @@ async function submitAddPolicy() {
 }
 
 function clearAddPolicyForm() {
-  ['new-id','new-description','new-tool','new-program','new-path'].forEach(id => document.getElementById(id).value = '');
+  editingRuleId = null;
+  ['new-id','new-name','new-description','new-tool','new-program','new-path'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('new-id').disabled = false;
   document.getElementById('new-priority').value = '10';
   document.getElementById('new-effect').value = 'allow';
+  document.getElementById('policy-modal-title').textContent = 'Add Policy Rule';
+  document.getElementById('policy-modal-submit').textContent = 'Add Rule';
+  document.getElementById('policy-modal-submit').onclick = submitAddPolicy;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
