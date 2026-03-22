@@ -21,6 +21,7 @@
 | [Trust_and_Security_Model_v02.md](Trust_and_Security_Model_v02.md) | Formal security model — governing principles, OCPL policy language, evaluation algorithm, and implementation roadmap *(current version)* |
 | [Trust_and_Security_Model_v01.md](Trust_and_Security_Model_v01.md) | Earlier draft of the security model *(superseded by v02)* |
 | [Controlling_OpenClaw_Agents_v02.md](Controlling_OpenClaw_Agents_v02.md) | Controlling Open Claw Agents Prototype — identity and plugin trust model, subject types, multi-user team identity, the subject forgery problem, and plugin trust levels |
+| [Policy_Analyst.md](Policy_Analyst.md) | Policy analysis and authoring — how the analyzer, NL chat panel, and /add-policy skill relate, what each does, comparison table |
 | [Policy_Examples.md](Policy_Examples.md) | Policy language examples (placeholder — to be filled in) |
 
 ## Progress Reports
@@ -45,6 +46,7 @@
 
 | Document | Description |
 | --- | --- |
+| [Deployment.md](Deployment.md) | Full deployment guide — system architecture, what lives where, nanoclaw integration, caching gotcha, step-by-step new installation, updating the hook |
 | [Demo.md](Demo.md) | Five-minute walkthrough of the system without a live OpenClaw instance |
 | [Testing_Without_OpenClaw.md](Testing_Without_OpenClaw.md) | Step-by-step guide for running and testing the policy server using the dummy harness |
 
