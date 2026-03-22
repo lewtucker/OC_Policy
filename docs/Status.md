@@ -1,6 +1,6 @@
 # OC Policy — Status
 
-**Date**: 2026-03-21
+**Date**: 2026-03-22
 
 ---
 
@@ -8,10 +8,11 @@
 
 ### Policy Server (`src/server/`)
 
-The server runs locally and is fully functional. Start it with:
+Start with:
 
 ```bash
-cd src/server && OC_POLICY_AGENT_TOKEN=mysecrettoken ./start.sh
+cd src/server
+OC_POLICY_AGENT_TOKEN=mytoken OC_POLICY_ADMIN_TOKEN=myadmintoken ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY ./start.sh
 ```
 
 | Capability | Status |
@@ -20,26 +21,39 @@ cd src/server && OC_POLICY_AGENT_TOKEN=mysecrettoken ./start.sh
 | YAML policy file — load, parse, persist | ✅ Working |
 | Hot reload from disk (`POST /policies/reload`) | ✅ Working |
 | REST CRUD for rules (add, edit, delete, list) | ✅ Working |
-| Approvals queue — create, resolve, list | ✅ Working |
+| Protected rules — `protected: true` blocks delete/edit via API | ✅ Working |
+| Approvals queue — create, resolve, list; subject_id stored | ✅ Working |
 | Audit log — persists to JSONL file, survives restarts | ✅ Working |
 | Fail-closed — blocks all calls if server is down | ✅ Working |
-| Bearer token auth on all endpoints | ✅ Working |
+| Two-token auth — agent token (enforcement) / admin token (management) | ✅ Working |
+| Per-person API tokens — resolves token → Person → admin check | ✅ Working |
+| Admin-only policy writes — 403 for non-admin callers | ✅ Working |
 | Identity resolution — chatJid → Person → groups | ✅ Working |
 | Group-based rule matching (`match.group`) | ✅ Working |
 | Person-specific rule matching (`match.person`) | ✅ Working |
 | Identity store — load from `identities.yaml`, `/identities` API | ✅ Working |
-| Subject ID recorded in audit log | ✅ Working |
+| Subject ID recorded in audit log and approval records | ✅ Working |
+| Policy change attribution — `changed_by` in audit log | ✅ Working |
+| `GET /me` — resolves caller token to identity | ✅ Working |
+| Policy Analyzer Tier 1 — shadow, conflict, orphan, gap detection | ✅ Working |
+| Policy Analyzer Tier 2 — unused rules, broad allows, uncovered groups | ✅ Working |
+| `GET /policies/analyze` endpoint | ✅ Working |
+| NL policy chat — describe rules in plain English, Claude proposes YAML | ✅ Working |
+| Token security — 12-char random hex tokens; identities.yaml gitignored | ✅ Working |
 
 ### Web UI (`http://localhost:8080`)
-
-Served directly from the policy server — no external deployment.
 
 | Screen | Status |
 | --- | --- |
 | Dashboard — stat cards, policy table, activity feed | ✅ Live data, auto-refreshes every 10s |
-| Approvals — pending cards with Approve / Deny; ← Dashboard button | ✅ Live data, auto-refreshes every 5s |
-| Policies — rule table, add/edit/delete; person & group dropdowns; ← Dashboard button | ✅ Live CRUD |
+| Approvals — pending cards with requester identity (👤 bob); Approve / Deny | ✅ Live data, auto-refreshes every 5s |
+| Policies — rule table with 🔒 lock on protected rules; add/edit/delete; policy health panel | ✅ Live CRUD |
+| Policy Health panel — collapsible summary badges + findings list; shown on Policies page | ✅ Working |
 | Identities — person cards with group pills | ✅ Live data |
+| Policy Assistant — floating draggable chat panel, context-aware splash, NL rule authoring | ✅ Working |
+| Add Rule modal — Display Name auto-fills Rule ID as kebab-case | ✅ Working |
+| Identity bar — shows logged-in user and admin status in sidebar | ✅ Working |
+| Token modal — Show/Hide toggle on token input | ✅ Working |
 | Plugins | 🔲 Placeholder — Phase 4 |
 
 ### Nanoclaw Hook (`~/dev/nanoclaw/container/agent-runner/src/index.ts`)
@@ -51,6 +65,7 @@ Served directly from the policy server — no external deployment.
 | Polls `/approvals/{id}` until resolved or timeout | ✅ Live |
 | Fails closed if server is unreachable | ✅ Live |
 | Passes `channel_id` (Telegram chatJid) for identity resolution | ✅ Live |
+| Uses separate agent token (not admin token) | ✅ Live |
 
 ### Testing
 
@@ -58,35 +73,44 @@ Served directly from the policy server — no external deployment.
 | --- | --- |
 | Automated tests (`test_server.py`) | ✅ Passing |
 | Container identity test (`test_container_identity.py`) | ✅ Passing |
+| Rule smoke tests (`test_rules.sh`) — 17 checks across all identities | ✅ 17/17 passing |
 | Approval flow tested end-to-end via live Telegram session | ✅ Verified |
-| Group-based rules (Alice/admin, Bob/engineering) | ✅ Verified in server |
 
 ---
 
 ## What's Next
 
+### Phase C — Policy change proposals for non-admins (postponed)
+
+Non-admins can request rule changes via the chat panel; requests go into an admin approval queue with Telegram notification. Reuses the existing approval pattern extended to the management plane.
+
+### Phase D Tier 3 — LLM-assisted policy analysis
+
+Use the NL chat panel to answer sophisticated policy questions:
+
+- "What can Bob do and not do?"
+- "Are there any ways engineering could access financial data?"
+- "Compare last week's rules to today's — what changed?"
+
+The chat panel already has Tier 1/2 findings in its system prompt. Tier 3 extends this with richer reasoning prompts.
+
 ### Phase 3c — Semantic categories and named lists
 
-The policy language currently matches on raw tool names and exact program strings. The next layer adds:
-
-- **Semantic request categories** — a mapping table from `(tool, params)` → `read | write | search | fetch | …` so rules can say `match: { category: write }` instead of listing every write tool
-- **Named lists** — domain lists, path lists, program lists referenced by name in rules (e.g. `match: { domain_list: approved-sites }`)
+- **Semantic request categories** — map `(tool, params)` → `read | write | search | fetch` so rules can match by intent rather than exact tool names
+- **Named lists** — domain allowlists and path patterns reusable across rules
 
 ### Phase 3c — Approval routing
 
-When a request is held pending, notify the requesting user via Telegram rather than requiring the admin to check the UI.
+Notify the requesting user via Telegram when their action is held pending, rather than requiring the admin to notice in the UI.
 
 ### Phase 4 — Plugin capabilities and credential injection
 
-When a plugin is installed, it declares what capabilities and credentials it needs. The server auto-generates policies and prompts for approval. Credentials are stored encrypted, scoped per plugin, and injected at runtime.
+When a plugin is installed, it declares what capabilities and credentials it needs. The server auto-generates policies and prompts for approval.
 
 ### Phase 4 — Tamper prevention
 
-Prevent the agent from modifying its own policies:
-
 - Separate OS user for the agent process
 - Split ports: agent on 8080, admin UI on 8443
-- File immutability on `policies.yaml`
 - HMAC-signed policy files
 - Signed subject tokens (containers cannot forge their own identity)
 
@@ -94,12 +118,12 @@ Prevent the agent from modifying its own policies:
 
 | Item | Notes |
 | --- | --- |
-| Policy conflict detection | Flag overlapping / contradictory rules in the UI |
 | `when:` clause in policy schema | Time-of-day, rate limits per OCPL design |
 | Block reason surfaced to user | Agent explains why action was blocked |
 | Rate limiting | Persistent counter store keyed by (subject, request, window) |
 | Multi-person approval | Approval records with multi-approver quorum state |
 | Plugin trust registry | Admin allowlist of approved plugin names/hashes |
+| Identity provider migration | Replace identities.yaml tokens with 1Password / LDAP / OAuth |
 
 ---
 
@@ -107,19 +131,21 @@ Prevent the agent from modifying its own policies:
 
 | File | Purpose |
 | --- | --- |
-| `src/server/start.sh` | One-command server startup |
-| `src/server/server.py` | FastAPI application |
-| `src/server/policy_engine.py` | Rule parser and evaluator |
+| `src/server/start.sh` | One-command server startup (kills existing, generates tokens) |
+| `src/server/kill-server.sh` | Kill any process on port 8080 |
+| `src/server/server.py` | FastAPI application — all endpoints |
+| `src/server/policy_engine.py` | Rule parser, evaluator, protected rule enforcement |
+| `src/server/policy_analyzer.py` | Tier 1+2 analysis — shadows, conflicts, gaps, unused, broad, uncovered |
+| `src/server/nl_policy.py` | NL policy chat — Claude-powered rule authoring |
 | `src/server/policies.yaml` | Active policy rules (edit directly or via UI) |
-| `src/server/identities.yaml` | People and group memberships |
-| `src/server/identity.py` | Identity store — chatJid → Person lookup |
-| `src/server/approvals.py` | Approval queue |
-| `src/server/audit.py` | Persistent audit log (JSONL) |
+| `src/server/identities.yaml` | People, groups, API tokens — **gitignored, never commit** |
+| `src/server/identity.py` | Identity store — chatJid / token → Person lookup |
+| `src/server/approvals.py` | Approval queue with subject attribution |
+| `src/server/audit.py` | Persistent audit log (JSONL) with policy change attribution |
 | `src/server/test_server.py` | Automated test harness |
-| `src/server/test_container_identity.py` | Container identity test |
+| `src/server/test_rules.sh` | Rule smoke tests — all identities and key actions |
 | `src/server/static/index.html` | Web UI |
 | `~/dev/nanoclaw/container/agent-runner/src/index.ts` | Nanoclaw enforcement hook |
 | `docs/Demo.md` | Five-minute demo walkthrough |
 | `docs/Testing_Without_OpenClaw.md` | Full test guide |
-| `docs/OC_Policy_Control_v01.md` | Architecture and design reference |
-| `docs/Trust_and_Security_Model_v02.md` | Full security model and OCPL spec |
+| `docs/Plan_Policy_Change_Authorization.md` | Two-token auth, protected rules, policy analyzer design |

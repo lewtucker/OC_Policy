@@ -2,7 +2,7 @@
 
 **Version**: v01
 **Date**: 2026-03-22
-**Status**: Design — not yet implemented
+**Status**: Partially implemented — Phase A ✅ complete, Phase B ✅ complete, Phase D Tier 1 ✅ complete, Phase D Tier 2 ✅ complete, Phase C ⏸ postponed, Phase D Tier 3 🔲 not yet started
 
 ---
 
@@ -150,7 +150,7 @@ When a new rule is created, the server validates:
 
 ## Implementation Phases
 
-### Phase A — Per-person tokens and admin-only writes
+### Phase A — Per-person tokens and admin-only writes ✅ Complete
 
 **Goal**: Close the privilege escalation gap. Only admins can modify policies.
 
@@ -167,7 +167,7 @@ When a new rule is created, the server validates:
 
 **Backward compatibility**: The shared `OC_POLICY_AGENT_TOKEN` continues to work for `POST /check` (enforcement). Policy CRUD can accept either a person token or the agent token (agent token implies admin for backward compat during migration).
 
-### Phase B — Protected rules and escalation guards
+### Phase B — Protected rules and escalation guards ✅ Complete
 
 **Goal**: Prevent even admins from accidentally breaking the policy system.
 
@@ -181,7 +181,7 @@ When a new rule is created, the server validates:
 | `nl_policy.py` | System prompt tells Claude about protected rules. Claude should not propose deleting or overriding them. |
 | `static/index.html` | Protected rules show a lock icon. Edit/delete buttons are disabled with tooltip explaining why. |
 
-### Phase C — Policy change proposals for non-admins
+### Phase C — Policy change proposals for non-admins ⏸ Postponed
 
 **Goal**: Non-admins can request policy changes, but changes go through admin approval.
 
@@ -196,7 +196,7 @@ When a new rule is created, the server validates:
 
 This phase reuses the existing approval pattern and extends it to the management plane.
 
-### Phase D — Policy Analysis Agent
+### Phase D — Policy Analysis Agent (Tier 1 ✅ Complete, Tier 2 ✅ Complete, Tier 3 🔲 Not started)
 
 **Goal**: An automated agent that analyzes the rule set as a whole, catching problems that no single rule check would find. Initially simple and deterministic; grows into a sophisticated policy intelligence layer over time.
 
