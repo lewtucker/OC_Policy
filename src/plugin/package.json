@@ -1,5 +1,5 @@
 {
-  "name": "@oc-policy/enforcement-plugin",
+  "name": "oc-policy",
   "version": "1.0.0",
   "description": "OC Policy enforcement plugin — intercepts tool calls via before_tool_call hook",
   "type": "module",
