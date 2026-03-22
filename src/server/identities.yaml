@@ -4,15 +4,19 @@ people:
     name: Lew Tucker
     telegram_id: "tg:6741893378"
     groups: [admin]
+    api_token: "lew-token"
   - id: lew-shala
     name: Lew+Shala
     telegram_id: "tg:-5235231470"
     groups: [team]
+    api_token: "lew-shala-token"
   - id: alice
     name: Alice
     telegram_id: "tg:111222333"
     groups: [admin]
+    api_token: "alice-token"
   - id: bob
     name: Bob
     telegram_id: "tg:444555666"
     groups: [engineering]
+    api_token: "bob-token"

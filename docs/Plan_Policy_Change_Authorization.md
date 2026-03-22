@@ -273,6 +273,8 @@ This tier turns the analysis agent into a policy advisor that can answer natural
 
 **Tier 3** is invoked through the chat panel ("analyze my policies", "what can Bob do?") and uses the same NL infrastructure from the chat endpoint, with an expanded system prompt that includes the full rule set, identities, and recent audit history.
 
+**Chat panel as the unified interface**: The existing chat panel serves double duty — it handles both rule authoring ("block curl") and policy analysis ("what can Bob do?", "are there any gaps?"). When the user asks a question rather than requesting a rule change, the backend injects Tier 1/2 analysis results into Claude's system prompt alongside the policies and identities. This means Claude answers with awareness of shadows, conflicts, and gaps — not just the raw rules. No separate analysis UI is needed; the chat panel *is* the interface to the policy analyst.
+
 #### Implementation
 
 | File | Phase | Purpose |

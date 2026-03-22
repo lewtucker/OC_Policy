@@ -8,13 +8,27 @@ set -e
 
 cd "$(dirname "$0")"
 
-# Generate a token if one isn't already set
+# Kill any existing server on port 8080
+pids=$(lsof -ti :8080 2>/dev/null || true)
+if [ -n "$pids" ]; then
+  echo "$pids" | xargs kill -9
+  echo "  Killed existing server on port 8080."
+fi
+
+# Agent token — used by nanoclaw enforcement plugin only
 if [ -z "$OC_POLICY_AGENT_TOKEN" ]; then
   export OC_POLICY_AGENT_TOKEN=$(openssl rand -hex 32)
   echo ""
-  echo "  Generated token (save this — you'll need it to connect the UI and plugin):"
-  echo ""
+  echo "  Generated agent token (for nanoclaw plugin only):"
   echo "    OC_POLICY_AGENT_TOKEN=$OC_POLICY_AGENT_TOKEN"
+fi
+
+# Admin token — used by the UI and CLI (humans managing policies)
+if [ -z "$OC_POLICY_ADMIN_TOKEN" ]; then
+  export OC_POLICY_ADMIN_TOKEN=$(openssl rand -hex 32)
+  echo ""
+  echo "  Generated admin token (for UI and /add-policy skill):"
+  echo "    OC_POLICY_ADMIN_TOKEN=$OC_POLICY_ADMIN_TOKEN"
   echo ""
 fi
 

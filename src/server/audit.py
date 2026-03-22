@@ -22,9 +22,10 @@ class AuditEntry:
     reason: str
     approval_id: str | None = None
     subject_id: str | None = None
+    changed_by: str | None = None   # person ID who made a policy change (policy CRUD only)
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "id": self.id,
             "timestamp": self.timestamp.isoformat(),
             "tool": self.tool,
@@ -35,6 +36,9 @@ class AuditEntry:
             "approval_id": self.approval_id,
             "subject_id": self.subject_id,
         }
+        if self.changed_by:
+            d["changed_by"] = self.changed_by
+        return d
 
 
 class AuditLog:
@@ -82,6 +86,7 @@ class AuditLog:
         reason: str,
         approval_id: str | None = None,
         subject_id: str | None = None,
+        changed_by: str | None = None,
     ) -> AuditEntry:
         entry = AuditEntry(
             id=str(uuid.uuid4()),
@@ -93,6 +98,7 @@ class AuditLog:
             reason=reason,
             approval_id=approval_id,
             subject_id=subject_id,
+            changed_by=changed_by,
         )
         self._entries.append(entry)
         if len(self._entries) > self._max:

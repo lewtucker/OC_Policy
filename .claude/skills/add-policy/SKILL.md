@@ -31,8 +31,8 @@ If no description is provided, ask the user what they'd like to allow, deny, or 
 Before interpreting anything, read the current state from the running policy server. Use Bash with curl:
 
 ```bash
-curl -s http://localhost:8080/policies -H "Authorization: Bearer $OC_POLICY_AGENT_TOKEN"
-curl -s http://localhost:8080/identities -H "Authorization: Bearer $OC_POLICY_AGENT_TOKEN"
+curl -s http://localhost:8080/policies -H "Authorization: Bearer $OC_POLICY_ADMIN_TOKEN"
+curl -s http://localhost:8080/identities -H "Authorization: Bearer $OC_POLICY_ADMIN_TOKEN"
 ```
 
 If the server is unreachable or the token is missing, tell the user:
@@ -112,7 +112,9 @@ Check existing rules and pick a priority that slots in correctly. If the new rul
 
 ### ID generation
 
-Generate a short, descriptive, kebab-case ID: `allow-lew-npm`, `deny-curl`, `ask-websearch`, `allow-admin-files`. Check it doesn't collide with existing IDs.
+Generate a short, descriptive, kebab-case ID: `allow-lew-npm`, `deny-curl`, `ask-websearch`, `allow-admin-files`.
+
+Check existing IDs for collisions. If the desired ID already exists, append `-2`, `-3`, etc. until unique (e.g. `deny-curl` → `deny-curl-2`). Never use numeric-only IDs like `001` or `008`.
 
 ## Step 3 — Resolve Ambiguity
 
@@ -158,7 +160,7 @@ On confirmation, POST to the policy server:
 
 ```bash
 curl -s -X POST http://localhost:8080/policies \
-  -H "Authorization: Bearer $OC_POLICY_AGENT_TOKEN" \
+  -H "Authorization: Bearer $OC_POLICY_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"id":"deny-curl","name":"Block curl","description":"Deny all shell commands starting with curl","result":"deny","priority":35,"match":{"tool":"Bash","program":"curl"}}'
 ```
@@ -192,7 +194,7 @@ When the user asks to delete or remove a rule:
 
 ```bash
 curl -s -X DELETE http://localhost:8080/policies/<rule-id> \
-  -H "Authorization: Bearer $OC_POLICY_AGENT_TOKEN"
+  -H "Authorization: Bearer $OC_POLICY_ADMIN_TOKEN"
 ```
 
 Confirm before deleting: "Delete rule `<id>` (<description>)? This cannot be undone."

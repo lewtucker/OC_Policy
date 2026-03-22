@@ -14,7 +14,7 @@ router = APIRouter()
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 SYSTEM_PROMPT_TEMPLATE = """\
-You are a policy authoring assistant for OC Policy, a system that controls what actions an AI agent (OpenClaw) can perform.
+You are a policy authoring assistant and analyst for OC Policy, a system that controls what actions an AI agent (OpenClaw) can perform.
 
 ## Rule schema
 
@@ -42,6 +42,18 @@ All match conditions are optional and ANDed together. Empty match = matches ever
 
 {identities_json}
 
+## Recent audit log (last 20 entries)
+
+Each entry records a tool call: tool, params, verdict (allow/deny/pending), matched rule, approval_id if pending, subject_id (who ran it).
+
+{audit_json}
+
+## Policy health findings
+
+The following issues were detected by the policy analyzer. Use these when answering questions about the policy set.
+
+{analysis_json}
+
 ## Your behavior
 
 1. Interpret the user's plain-English request into one or more rules.
@@ -50,7 +62,7 @@ All match conditions are optional and ANDed together. Empty match = matches ever
 4. For "block"/"stop"/"prevent" → result: deny. For "allow"/"let"/"permit" → result: allow. For "ask"/"approve"/"require approval" → result: pending.
 5. When the user mentions a program (npm, curl, git, rm, etc.), set tool: Bash AND program: <name>.
 6. When the user mentions a person or group, validate against the known identities. If not found, say so and list known options.
-7. Generate short, descriptive kebab-case IDs. Check they don't collide with existing rule IDs.
+7. Generate short, descriptive kebab-case IDs (e.g. deny-curl, allow-eng-git). Check existing IDs for collisions. If the desired ID already exists, append -2, -3, etc. until unique (e.g. deny-curl-2). Never use numeric-only IDs.
 8. Set priority based on specificity: person+tool+program (65-75), person+tool (55-65), group+path (55-65), group+tool (45-55), tool+program (30-40), tool-only (15-25), catch-all (0-5).
 9. Check for conflicts with existing rules and mention them.
 10. For "explain" or "why was X blocked" questions, walk through the rule evaluation logic.
@@ -111,7 +123,7 @@ def _extract_proposed(text: str) -> tuple[str | None, list[dict] | None, str | N
     return None, None, None
 
 
-def create_chat_handler(engine, identities_store, require_token_fn):
+def create_chat_handler(engine, identities_store, require_token_fn, run_analysis_fn=None, audit_log=None):
     """Factory that returns the /chat endpoint with access to shared state."""
 
     @router.post("/chat")
@@ -131,10 +143,20 @@ def create_chat_handler(engine, identities_store, require_token_fn):
         identities_json = json.dumps(
             [p.to_dict() for p in identities_store.list_all()], indent=2
         )
+        analysis_json = "[]"
+        if run_analysis_fn:
+            findings = run_analysis_fn()
+            analysis_json = json.dumps([f.to_dict() for f in findings], indent=2)
+
+        audit_json = "[]"
+        if audit_log:
+            audit_json = json.dumps([e.to_dict() for e in audit_log.recent(20)], indent=2)
 
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
             policies_json=policies_json,
             identities_json=identities_json,
+            audit_json=audit_json,
+            analysis_json=analysis_json,
         )
 
         # Build message list from history + new message

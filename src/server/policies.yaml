@@ -1,121 +1,45 @@
 version: 1
 policies:
-- id: admin-allow-all
-  name: Admin group full access
-  description: Allow admin group to perform any action
-  result: allow
+- id: git-requires-approval
+  name: Require approval for git commands
+  description: All git commands require approval before execution
+  result: pending
   priority: 80
   match:
-    group: admin
-- id: lew-can-git
-  name: Lew can run git
-  description: Allow git commands for lew specifically
-  result: pending
-  priority: 70
-  match:
+    tool: Bash
     program: git
-    person: lew
-- id: admin-read-employees
-  name: Admins read employee DB
-  description: Admin group can read employee files
+- id: allow-admin-ls
+  name: Allow ls for admin
+  description: Allow ls command for admin group without approval
   result: allow
   priority: 60
   match:
+    tool: Bash
     group: admin
-    path: /workspace/employees/*
-- id: deny-eng-finance
-  name: Deny engineering finance access
-  description: Block engineering group from accessing financial files
-  result: deny
-  priority: 55
-  match:
-    group: engineering
-    path: /workspace/finance/*
-- id: deny-eng-read-employees
-  name: Deny engineering employee DB
-  description: Engineering group cannot read employee files
-  result: deny
-  priority: 50
-  match:
-    group: engineering
-    path: /workspace/employees/*
-- id: allow-eng-git
-  name: Engineering can use git
-  description: Allow engineering group to run git commands
+    program: ls
+- id: allow-admin-cat
+  name: Allow cat for admin
+  description: Allow cat command for admin group without approval
   result: allow
-  priority: 50
+  priority: 60
   match:
     tool: Bash
-    program: git
-    group: engineering
-- id: allow-eng-bash
-  name: Engineering can run Bash
-  description: Allow engineering group to run shell commands
+    group: admin
+    program: cat
+- id: allow-admin-pwd
+  name: Allow pwd for admin
+  description: Allow pwd command for admin group without approval
   result: allow
-  priority: 45
+  priority: 60
   match:
     tool: Bash
-    group: engineering
-- id: allow-eng-websearch
-  name: Engineering can web search
-  description: Allow engineering group to perform web searches
-  result: allow
-  priority: 45
-  match:
-    tool: WebSearch
-    group: engineering
-- id: deny-rm
-  name: Block rm
-  description: Deny all shell commands starting with rm
+    group: admin
+    program: pwd
+- id: deny-non-admin-rm
+  name: Block rm for non-admin users
+  description: Prevent non-admin users from using rm command
   result: deny
   priority: 35
   match:
     tool: Bash
     program: rm
-- id: 008
-  name: Curl Request
-  description: Force approval for curl requests
-  result: pending
-  priority: 30
-  match:
-    tool: Bash
-    program: curl
-- id: '004'
-  name: ask-bash
-  description: Require approval before running any shell command
-  result: pending
-  priority: 20
-  match:
-    tool: Bash
-- id: '005'
-  name: ask-webfetch
-  description: Require approval before fetching any URL
-  result: pending
-  priority: 20
-  match:
-    tool: WebFetch
-- id: '006'
-  name: ask-websearch
-  description: Require approval before any web search
-  result: pending
-  priority: 20
-  match:
-    tool: WebSearch
-- id: '003'
-  name: ask-everything
-  description: Require approval for any unmatched action
-  result: pending
-  priority: 1
-  match: {}
-- id: '002'
-  name: allow-all
-  description: Allow everything not matched by a higher-priority rule
-  result: allow
-  priority: 0
-  match: {}
-- id: '001'
-  name: deny all unknown
-  description: Deny anything that isn't recognized
-  result: deny
-  priority: -1
-  match: {}

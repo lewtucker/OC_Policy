@@ -15,10 +15,12 @@ from approvals import ApprovalStore
 from audit import AuditLog
 from identity import IdentityStore
 from nl_policy import create_chat_handler
+from policy_analyzer import analyze, summarize
 
 app = FastAPI(title="OC Policy Server", version="0.4.0")
 
-AGENT_TOKEN    = os.environ["OC_POLICY_AGENT_TOKEN"]
+AGENT_TOKEN    = os.environ["OC_POLICY_AGENT_TOKEN"]   # enforcement plugin only (nanoclaw)
+ADMIN_TOKEN    = os.environ["OC_POLICY_ADMIN_TOKEN"]   # UI, CLI, humans managing policies
 POLICY_FILE    = Path(os.environ.get("OC_POLICY_FILE",   Path(__file__).parent / "policies.yaml"))
 AUDIT_FILE     = Path(os.environ.get("OC_AUDIT_FILE",    Path(__file__).parent / "audit.jsonl"))
 IDENTITY_FILE  = Path(os.environ.get("OC_IDENTITY_FILE", Path(__file__).parent / "identities.yaml"))
@@ -68,12 +70,44 @@ class ResolveRequest(BaseModel):
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 def require_agent_token(authorization: str) -> None:
+    """Enforcement endpoints only — nanoclaw plugin. No policy management access."""
     if authorization != f"Bearer {AGENT_TOKEN}":
         raise HTTPException(status_code=401, detail="Invalid agent token")
 
 
+def require_admin_token(authorization: str) -> "Person":
+    """
+    Policy management endpoints — resolves token to a Person and checks admin group.
+    Falls back to OC_POLICY_ADMIN_TOKEN as a bootstrap superuser (returns synthetic identity).
+    """
+    from identity import Person as _Person
+    token = authorization.removeprefix("Bearer ")
+
+    # Try per-person token first
+    person = identities.resolve_by_token(token)
+    if person:
+        if not person.is_admin():
+            raise HTTPException(status_code=403, detail=f"'{person.name}' is not an admin")
+        return person
+
+    # Fall back to shared bootstrap admin token
+    if token == ADMIN_TOKEN:
+        return _Person(id="admin", name="Admin", telegram_id="", groups=["admin"])
+
+    raise HTTPException(status_code=401, detail="Invalid token")
+
+
+# ── Policy Analysis helper ────────────────────────────────────────────────────
+
+def run_analysis():
+    people = [p.id for p in identities.list_all()]
+    groups = list({g for p in identities.list_all() for g in p.groups})
+    findings = analyze(engine.rules, people, groups)
+    return findings
+
+
 # ── NL Policy Chat ────────────────────────────────────────────────────────────
-nl_router = create_chat_handler(engine, identities, require_agent_token)
+nl_router = create_chat_handler(engine, identities, require_admin_token, run_analysis, audit)
 app.include_router(nl_router)
 
 
@@ -135,14 +169,16 @@ async def check(req: CheckRequest, authorization: str = Header(...)):
 
 @app.get("/approvals")
 async def list_approvals(authorization: str = Header(...), pending_only: bool = False):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     records = approvals.list_pending() if pending_only else approvals.list_all()
     return {"approvals": [r.to_dict() for r in records]}
 
 
 @app.get("/approvals/{approval_id}")
 async def get_approval(approval_id: str, authorization: str = Header(...)):
-    require_agent_token(authorization)
+    # Agent token allowed: nanoclaw polls this to check if its pending action was resolved
+    if authorization not in (f"Bearer {AGENT_TOKEN}", f"Bearer {ADMIN_TOKEN}"):
+        raise HTTPException(status_code=401, detail="Invalid token")
     record = approvals.get(approval_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Approval not found")
@@ -155,7 +191,7 @@ async def resolve_approval(
     body: ResolveRequest,
     authorization: str = Header(...),
 ):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
 
     if body.verdict not in ("allow", "deny"):
         raise HTTPException(status_code=400, detail="verdict must be 'allow' or 'deny'")
@@ -172,7 +208,7 @@ async def resolve_approval(
 
 @app.get("/audit")
 async def get_audit(authorization: str = Header(...), limit: int = 100):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     return {"entries": [e.to_dict() for e in audit.recent(limit)]}
 
 
@@ -180,43 +216,60 @@ async def get_audit(authorization: str = Header(...), limit: int = 100):
 
 @app.get("/policies")
 async def list_policies(authorization: str = Header(...)):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     return {"policies": [r.to_dict() for r in engine.rules]}
 
 
 @app.post("/policies", status_code=201)
 async def add_policy(rule: RuleIn, authorization: str = Header(...)):
-    require_agent_token(authorization)
+    caller = require_admin_token(authorization)
     try:
         new_rule = engine.add(rule.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    print(f"[POLICY] added rule '{new_rule.id}'")
-    return new_rule.to_dict()
+    findings = run_analysis()
+    warnings = [f.to_dict() for f in findings if f.rule_id == new_rule.id or f.related_id == new_rule.id]
+    print(f"[POLICY] added rule '{new_rule.id}' by {caller.id}" + (f" — {len(warnings)} warning(s)" if warnings else ""))
+    result = new_rule.to_dict()
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 @app.put("/policies/{rule_id}")
 async def update_policy(rule_id: str, rule: RuleIn, authorization: str = Header(...)):
-    require_agent_token(authorization)
+    caller = require_admin_token(authorization)
     try:
         updated = engine.update(rule_id, rule.model_dump())
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    print(f"[POLICY] updated rule '{rule_id}'")
-    return updated.to_dict()
+    findings = run_analysis()
+    warnings = [f.to_dict() for f in findings if f.rule_id == rule_id or f.related_id == rule_id]
+    print(f"[POLICY] updated rule '{rule_id}' by {caller.id}" + (f" — {len(warnings)} warning(s)" if warnings else ""))
+    result = updated.to_dict()
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 @app.delete("/policies/{rule_id}", status_code=204)
 async def delete_policy(rule_id: str, authorization: str = Header(...)):
-    require_agent_token(authorization)
+    caller = require_admin_token(authorization)
     if not engine.remove(rule_id):
         raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found")
-    print(f"[POLICY] removed rule '{rule_id}'")
+    print(f"[POLICY] removed rule '{rule_id}' by {caller.id}")
+
+
+@app.get("/policies/analyze")
+async def analyze_policies(authorization: str = Header(...)):
+    require_admin_token(authorization)
+    findings = run_analysis()
+    return {"findings": [f.to_dict() for f in findings], "summary": summarize(findings)}
 
 
 @app.post("/policies/reload")
 async def reload_policies(authorization: str = Header(...)):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     engine.reload()
     print(f"[POLICY] reloaded {len(engine.rules)} rule(s) from disk")
     return {"reloaded": len(engine.rules)}
@@ -226,16 +279,24 @@ async def reload_policies(authorization: str = Header(...)):
 
 @app.get("/identities")
 async def list_identities(authorization: str = Header(...)):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     return {"people": [p.to_dict() for p in identities.list_all()]}
 
 
 @app.post("/identities/reload")
 async def reload_identities(authorization: str = Header(...)):
-    require_agent_token(authorization)
+    require_admin_token(authorization)
     identities.reload()
     print(f"[IDENTITY] reloaded {len(identities.list_all())} person(s) from disk")
     return {"reloaded": len(identities.list_all())}
+
+
+# ── /me ───────────────────────────────────────────────────────────────────────
+
+@app.get("/me")
+async def me(authorization: str = Header(...)):
+    caller = require_admin_token(authorization)
+    return {"id": caller.id, "name": caller.name, "groups": caller.groups}
 
 
 # ── /health ───────────────────────────────────────────────────────────────────
