@@ -16,7 +16,7 @@ tool call — can be exercised this way.
 | Human approval flow (approve / deny) | ✅ via UI or curl |
 | Audit log | ✅ |
 | Fail-closed behaviour (server offline) | ✅ |
-| Web UI — all four live screens | ✅ |
+| Web UI — all five live screens | ✅ |
 | Actual blocking of an OpenClaw tool call | ❌ needs OC + plugin |
 
 ---
@@ -55,8 +55,9 @@ Expected response:
 ```json
 {
   "status": "ok",
-  "phase": "2.5",
-  "rules": 2,
+  "phase": "3b",
+  "rules": 9,
+  "identities": 3,
   "pending_approvals": 0,
   "audit_entries": 0
 }
@@ -170,7 +171,7 @@ Go to the **Policies** screen in the browser.
 
 **Add a rule:**
 1. Click **+ Add Rule**
-2. Fill in: ID = `allow-npm`, Effect = `allow`, Tool = `exec`, Program = `npm`, Priority = `10`
+2. Fill in: ID = `allow-npm`, Result = `allow`, Tool = `exec`, Program = `npm`, Priority = `10`
 3. Click **Add Rule**
 4. The table updates immediately
 
@@ -219,7 +220,7 @@ With the server running, open `src/server/policies.yaml` in an editor and add a 
 ```yaml
 - id: deny-rm
   description: Block rm — destructive
-  effect: deny
+  result: deny
   priority: 100
   match:
     tool: exec

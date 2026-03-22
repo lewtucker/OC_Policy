@@ -3,6 +3,7 @@ OC Policy Server — Phase 2.5
 Rules from policies.yaml; approvals queue; audit log.
 """
 import os
+import httpx
 from pathlib import Path
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -12,16 +13,20 @@ from pydantic import BaseModel
 from policy_engine import PolicyEngine
 from approvals import ApprovalStore
 from audit import AuditLog
+from identity import IdentityStore
 
 app = FastAPI(title="OC Policy Server", version="0.4.0")
 
-AGENT_TOKEN = os.environ["OC_POLICY_AGENT_TOKEN"]
-POLICY_FILE = Path(os.environ.get("OC_POLICY_FILE", Path(__file__).parent / "policies.yaml"))
-AUDIT_FILE  = Path(os.environ.get("OC_AUDIT_FILE",  Path(__file__).parent / "audit.jsonl"))
+AGENT_TOKEN    = os.environ["OC_POLICY_AGENT_TOKEN"]
+POLICY_FILE    = Path(os.environ.get("OC_POLICY_FILE",   Path(__file__).parent / "policies.yaml"))
+AUDIT_FILE     = Path(os.environ.get("OC_AUDIT_FILE",    Path(__file__).parent / "audit.jsonl"))
+IDENTITY_FILE  = Path(os.environ.get("OC_IDENTITY_FILE", Path(__file__).parent / "identities.yaml"))
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")   # optional — enables approval notifications
 
-engine    = PolicyEngine(POLICY_FILE)
-approvals = ApprovalStore()
-audit     = AuditLog(log_file=AUDIT_FILE)
+engine     = PolicyEngine(POLICY_FILE)
+approvals  = ApprovalStore()
+audit      = AuditLog(log_file=AUDIT_FILE)
+identities = IdentityStore(IDENTITY_FILE)
 
 # ── Static UI ─────────────────────────────────────────────────────────────────
 STATIC_DIR = Path(__file__).parent / "static"
@@ -36,6 +41,7 @@ async def serve_ui():
 class CheckRequest(BaseModel):
     tool: str
     params: dict
+    channel_id: str | None = None  # Telegram chat JID for identity resolution
 
 
 class CheckResponse(BaseModel):
@@ -48,7 +54,7 @@ class RuleIn(BaseModel):
     id: str
     name: str = ""
     description: str = ""
-    effect: str
+    result: str
     priority: int = 0
     match: dict = {}
 
@@ -65,23 +71,56 @@ def require_agent_token(authorization: str) -> None:
         raise HTTPException(status_code=401, detail="Invalid agent token")
 
 
+# ── Telegram notification ─────────────────────────────────────────────────────
+
+async def notify_pending(channel_id: str, tool: str, params: dict, approval_id: str) -> None:
+    """Send a Telegram message to the requesting user when their action needs approval."""
+    if not TELEGRAM_TOKEN:
+        return
+    # channel_id is stored as "tg:123456789" — strip the prefix for the Bot API
+    numeric_id = channel_id.removeprefix("tg:")
+    summary = params.get("command") or params.get("query") or params.get("url") or ""
+    text = (
+        f"⏳ *Approval required*\n\n"
+        f"Tool: `{tool}`"
+        + (f"\n`{summary[:120]}`" if summary else "")
+        + f"\n\nOpen the policy dashboard to approve or deny."
+    )
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+                json={"chat_id": numeric_id, "text": text, "parse_mode": "Markdown"},
+            )
+    except Exception as e:
+        print(f"[NOTIFY] failed to send Telegram message: {e}")
+
+
 # ── /check — called by the plugin ────────────────────────────────────────────
 
 @app.post("/check", response_model=CheckResponse)
 async def check(req: CheckRequest, authorization: str = Header(...)):
     require_agent_token(authorization)
 
-    effect, reason, rule_id = engine.evaluate(req.tool, req.params)
+    print(f"[DEBUG] /check body: tool={req.tool!r} channel_id={req.channel_id!r}")
+    subject = None
+    if req.channel_id:
+        subject = identities.resolve_by_telegram(req.channel_id)
 
+    effect, reason, rule_id = engine.evaluate(req.tool, req.params, subject)
+
+    subject_id = subject.id if subject else None
     approval_id = None
     if effect == "pending" and rule_id:
         record = approvals.create(req.tool, req.params, rule_id)
         approval_id = record.id
-        print(f"[PENDING] tool={req.tool!r}  approval_id={approval_id}  rule={rule_id!r}")
+        print(f"[PENDING] tool={req.tool!r}  subject={subject_id}  approval_id={approval_id}  rule={rule_id!r}")
+        if req.channel_id:
+            await notify_pending(req.channel_id, req.tool, req.params, approval_id)
     else:
-        print(f"[{effect.upper()}] tool={req.tool!r}  params={req.params}  rule={rule_id!r}")
+        print(f"[{effect.upper()}] tool={req.tool!r}  subject={subject_id}  params={req.params}  rule={rule_id!r}")
 
-    audit.append(req.tool, req.params, effect, rule_id, reason, approval_id)
+    audit.append(req.tool, req.params, effect, rule_id, reason, approval_id, subject_id)
 
     return CheckResponse(verdict=effect, reason=reason, approval_id=approval_id)
 
@@ -177,14 +216,31 @@ async def reload_policies(authorization: str = Header(...)):
     return {"reloaded": len(engine.rules)}
 
 
+# ── /identities ───────────────────────────────────────────────────────────────
+
+@app.get("/identities")
+async def list_identities(authorization: str = Header(...)):
+    require_agent_token(authorization)
+    return {"people": [p.to_dict() for p in identities.list_all()]}
+
+
+@app.post("/identities/reload")
+async def reload_identities(authorization: str = Header(...)):
+    require_agent_token(authorization)
+    identities.reload()
+    print(f"[IDENTITY] reloaded {len(identities.list_all())} person(s) from disk")
+    return {"reloaded": len(identities.list_all())}
+
+
 # ── /health ───────────────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
-        "phase": "2.5",
+        "phase": "3b",
         "rules": len(engine.rules),
+        "identities": len(identities.list_all()),
         "pending_approvals": len(approvals.list_pending()),
         "audit_entries": len(audit.recent(10000)),
     }

@@ -106,7 +106,7 @@ Click **Policies** in the sidebar, then **+ Add Rule**. Fill in:
 | --- | --- |
 | Rule ID | `allow-npm` |
 | Description | `Allow npm commands` |
-| Effect | `allow` |
+| Result | `allow` |
 | Priority | `10` |
 | Tool | `exec` |
 | Program | `npm` |

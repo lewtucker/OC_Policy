@@ -18,6 +18,12 @@ if [ -z "$OC_POLICY_AGENT_TOKEN" ]; then
   echo ""
 fi
 
+if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+  echo "  Note: TELEGRAM_BOT_TOKEN not set — approval notifications disabled."
+else
+  echo "  Telegram notifications: enabled."
+fi
+echo ""
 echo "  Starting OC Policy Server on http://localhost:8080"
 echo "  Open http://localhost:8080 in your browser to access the UI."
 echo "  Press Ctrl-C to stop."

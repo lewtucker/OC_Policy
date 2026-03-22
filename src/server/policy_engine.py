@@ -7,9 +7,12 @@ from __future__ import annotations
 import fnmatch
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import yaml
+
+if TYPE_CHECKING:
+    from identity import Person
 
 Effect = Literal["allow", "deny", "pending"]
 
@@ -17,7 +20,7 @@ Effect = Literal["allow", "deny", "pending"]
 @dataclass
 class Rule:
     id: str
-    effect: Effect
+    result: Effect
     match: dict = field(default_factory=dict)
     priority: int = 0
     name: str = ""
@@ -28,7 +31,7 @@ class Rule:
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "effect": self.effect,
+            "result": self.result,
             "priority": self.priority,
             "match": self.match,
         }
@@ -57,7 +60,7 @@ class PolicyEngine:
         self._rules = [
             Rule(
                 id=p["id"],
-                effect=p["effect"],
+                result=p.get("result", p.get("effect", "deny")),  # support old "effect" key during migration
                 match=p.get("match", {}),
                 priority=p.get("priority", 0),
                 name=p.get("name", ""),
@@ -91,7 +94,7 @@ class PolicyEngine:
             raise ValueError(f"Rule '{rule_data['id']}' already exists")
         rule = Rule(
             id=rule_data["id"],
-            effect=rule_data["effect"],
+            result=rule_data["result"],
             match=rule_data.get("match", {}),
             priority=rule_data.get("priority", 0),
             name=rule_data.get("name", ""),
@@ -108,7 +111,7 @@ class PolicyEngine:
             if r.id == rule_id:
                 updated = Rule(
                     id=rule_id,
-                    effect=rule_data["effect"],
+                    result=rule_data["result"],
                     match=rule_data.get("match", {}),
                     priority=rule_data.get("priority", 0),
                     name=rule_data.get("name", ""),
@@ -131,19 +134,19 @@ class PolicyEngine:
 
     # ── Evaluation ────────────────────────────────────────────────────────────
 
-    def evaluate(self, tool: str, params: dict) -> tuple[Effect, str, str | None]:
+    def evaluate(self, tool: str, params: dict, subject: Person | None = None) -> tuple[Effect, str, str | None]:
         """
         Returns (effect, reason, matched_rule_id).
         Falls back to ("deny", "No policy permits this action", None) if no rule matches.
         """
         for rule in self._rules:
-            if self._matches(rule, tool, params):
+            if self._matches(rule, tool, params, subject):
                 reason = rule.description or f"Matched rule '{rule.id}'"
-                return rule.effect, reason, rule.id
+                return rule.result, reason, rule.id
 
         return "deny", "No policy permits this action", None
 
-    def _matches(self, rule: Rule, tool: str, params: dict) -> bool:
+    def _matches(self, rule: Rule, tool: str, params: dict, subject: Person | None = None) -> bool:
         m = rule.match
 
         # Empty match dict = wildcard (matches everything)
@@ -165,6 +168,16 @@ class PolicyEngine:
         if "path" in m:
             path = str(params.get("path", params.get("file", "")))
             if not fnmatch.fnmatch(path, m["path"]):
+                return False
+
+        # Group membership
+        if "group" in m:
+            if subject is None or m["group"] not in subject.groups:
+                return False
+
+        # Specific person
+        if "person" in m:
+            if subject is None or m["person"] != subject.id:
                 return False
 
         return True

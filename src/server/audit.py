@@ -21,6 +21,7 @@ class AuditEntry:
     rule_id: str | None
     reason: str
     approval_id: str | None = None
+    subject_id: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -32,6 +33,7 @@ class AuditEntry:
             "rule_id": self.rule_id,
             "reason": self.reason,
             "approval_id": self.approval_id,
+            "subject_id": self.subject_id,
         }
 
 
@@ -63,6 +65,7 @@ class AuditLog:
                         rule_id=d.get("rule_id"),
                         reason=d["reason"],
                         approval_id=d.get("approval_id"),
+                        subject_id=d.get("subject_id"),
                     ))
                 except Exception:
                     pass  # skip malformed lines
@@ -78,6 +81,7 @@ class AuditLog:
         rule_id: str | None,
         reason: str,
         approval_id: str | None = None,
+        subject_id: str | None = None,
     ) -> AuditEntry:
         entry = AuditEntry(
             id=str(uuid.uuid4()),
@@ -88,6 +92,7 @@ class AuditLog:
             rule_id=rule_id,
             reason=reason,
             approval_id=approval_id,
+            subject_id=subject_id,
         )
         self._entries.append(entry)
         if len(self._entries) > self._max:

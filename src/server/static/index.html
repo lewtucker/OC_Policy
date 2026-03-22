@@ -83,6 +83,14 @@
     .pill.pending { background: rgba(245,158,11,.15); color: var(--amber); }
     .pill.approved { background: rgba(34,197,94,.15); color: var(--green); }
     .pill.denied  { background: rgba(239,68,68,.15); color: var(--red); }
+    .pill.group-pill { background: rgba(99,102,241,.15); color: #6366f1; }
+
+    .identity-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .identity-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .identity-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+    .identity-detail { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .identity-label { font-weight: 600; color: var(--text); display: inline-block; width: 70px; }
+    .identity-groups { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
 
     /* ── Buttons ── */
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; }
@@ -115,6 +123,7 @@
     .feed-row:last-child { border-bottom: none; }
     .feed-verdict { width: 52px; flex-shrink: 0; }
     .feed-cmd { font-family: var(--mono); color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feed-subject { color: var(--muted); font-size: 11px; width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .feed-rule { color: var(--muted); font-size: 11px; width: 160px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .feed-time { color: var(--muted); font-size: 11px; width: 70px; text-align: right; flex-shrink: 0; }
 
@@ -227,9 +236,9 @@
 
   <!-- Approvals -->
   <div class="page" id="page-approvals">
-    <div class="page-header">
-      <div class="page-title">Approvals</div>
-      <div class="page-sub" id="approvals-sub">Loading…</div>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:0">
+      <div><div class="page-title">Approvals</div><div class="page-sub" id="approvals-sub">Loading…</div></div>
+      <button class="btn btn-ghost" style="margin-top:24px" onclick="showPage('dashboard',document.querySelector('[onclick*=dashboard]'))">← Dashboard</button>
     </div>
     <div class="page-body">
       <div class="banner error" id="approvals-error"></div>
@@ -241,7 +250,10 @@
   <div class="page" id="page-policies">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:0">
       <div><div class="page-title">Policies</div><div class="page-sub">Rules evaluated in priority order; first match wins.</div></div>
-      <button class="btn btn-primary" style="margin-top:24px" onclick="clearAddPolicyForm();openModal('add-policy-modal')">+ Add Rule</button>
+      <div style="display:flex;gap:8px;margin-top:24px">
+        <button class="btn btn-ghost" onclick="showPage('dashboard',document.querySelector('[onclick*=dashboard]'))">← Dashboard</button>
+        <button class="btn btn-primary" onclick="clearAddPolicyForm();openModal('add-policy-modal')">+ Add Rule</button>
+      </div>
     </div>
     <div class="page-body">
       <div class="banner error" id="policies-error"></div>
@@ -262,8 +274,10 @@
 
   <!-- Identities -->
   <div class="page" id="page-identities">
-    <div class="page-header"><div class="page-title">Identities</div><div class="page-sub">Trusted sources and user attributes — coming in Phase 3+</div></div>
-    <div class="page-body"><div class="empty-state"><div class="empty-icon">👤</div>Identity model and trusted source integrations (YAML, 1Password, LDAP, OAuth) are planned for Phase 3+.</div></div>
+    <div class="page-header"><div class="page-title">Identities</div><div class="page-sub">People and group memberships loaded from identities.yaml</div></div>
+    <div class="page-body" id="identities-body">
+      <div class="empty-state"><div class="empty-icon">👤</div>Loading…</div>
+    </div>
   </div>
 
 </main>
@@ -338,6 +352,18 @@
       <label>Path (file tools)</label>
       <input type="text" id="new-path" placeholder="/home/**" />
       <div class="form-hint">* and ** glob patterns supported</div>
+    </div>
+    <div class="form-row-inline" style="margin-top:14px">
+      <div class="form-row" style="margin-bottom:0">
+        <label>Person</label>
+        <select id="new-person"><option value="">any person</option></select>
+        <div class="form-hint">match a specific person by ID</div>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label>Group</label>
+        <select id="new-group"><option value="">any group</option></select>
+        <div class="form-hint">match all members of a group</div>
+      </div>
     </div>
     <div class="banner error" id="add-policy-error"></div>
     <div class="modal-footer">
@@ -421,9 +447,10 @@ function showPage(id, navEl) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   navEl.classList.add('active');
-  if (id === 'approvals') loadApprovals();
-  if (id === 'policies')  loadPolicies();
-  if (id === 'dashboard') loadDashboard();
+  if (id === 'approvals')  loadApprovals();
+  if (id === 'policies')   loadPolicies();
+  if (id === 'dashboard')  loadDashboard();
+  if (id === 'identities') loadIdentities();
 }
 
 // ── Polling ────────────────────────────────────────────────────────────────
@@ -469,7 +496,7 @@ async function loadDashboard() {
       tbody.innerHTML = policies.policies.map(r => `
         <tr>
           <td class="mono" style="font-size:12px">${esc(r.id)}</td>
-          <td><span class="pill ${r.effect}">${r.effect}</span></td>
+          <td><span class="pill ${r.result}">${r.result}</span></td>
           <td class="mono muted" style="font-size:11px">${matchLabel(r.match)}</td>
           <td class="muted">${r.priority}</td>
         </tr>`).join('');
@@ -492,6 +519,7 @@ async function loadDashboard() {
         <div class="feed-row">
           <div class="feed-verdict"><span class="pill ${pillClass}" ${pillClass === 'pending' ? 'style="cursor:pointer" onclick="showPage(\'approvals\',document.querySelector(\'[onclick*=approvals]\')); return false;"' : ''}>${displayVerdict}</span></div>
           <div class="feed-cmd">${esc(e.tool === 'exec' ? e.params.command || '—' : e.tool + ' ' + JSON.stringify(e.params))}</div>
+          <div class="feed-subject">${esc(e.subject_id || '—')}</div>
           <div class="feed-rule">${esc(e.rule_id || '—')}</div>
           <div class="feed-time">${relTime(e.timestamp)}</div>
         </div>`;
@@ -593,7 +621,7 @@ async function loadPolicies() {
         <td style="font-size:13px">${esc(r.name || r.id)}</td>
         <td class="mono muted" style="font-size:11px">${esc(r.id)}</td>
         <td class="dim">${esc(r.description || '—')}</td>
-        <td><span class="pill ${r.effect}">${r.effect}</span></td>
+        <td><span class="pill ${r.result}">${r.result}</span></td>
         <td class="mono muted" style="font-size:11px">${matchLabel(r.match)}</td>
         <td class="muted">${r.priority}</td>
         <td style="white-space:nowrap"><button class="btn-icon" onclick="editPolicy('${esc(r.id)}')" title="Edit rule">✎</button> <button class="btn-icon" onclick="deletePolicy('${r.id}',this)" title="Delete rule">✕</button></td>
@@ -617,6 +645,59 @@ async function deletePolicy(id, btn) {
   }
 }
 
+// ── Identities ────────────────────────────────────────────────────────────
+async function loadIdentities() {
+  _cachedPeople = null;  // invalidate dropdown cache
+  const body = document.getElementById('identities-body');
+  try {
+    const data = await api('GET', '/identities');
+    const people = data.people || [];
+    if (!people.length) {
+      body.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div>No identities configured. Add people to identities.yaml.</div>';
+      return;
+    }
+    body.innerHTML = '<div class="identity-grid">' + people.map(p => {
+      const maskedTg = p.telegram_id ? p.telegram_id.slice(0, 3) + '••••' + p.telegram_id.slice(-2) : '—';
+      const groups = (p.groups || []).map(g => `<span class="pill group-pill">${g}</span>`).join(' ');
+      return `<div class="identity-card">
+        <div class="identity-name">${p.name}</div>
+        <div class="identity-detail"><span class="identity-label">ID</span> ${p.id}</div>
+        <div class="identity-detail"><span class="identity-label">Telegram</span> ${maskedTg}</div>
+        <div class="identity-groups">${groups || '<span class="muted">No groups</span>'}</div>
+      </div>`;
+    }).join('') + '</div>';
+  } catch (e) {
+    body.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div>Could not load identities.</div>';
+  }
+}
+
+// ── Identity dropdowns ─────────────────────────────────────────────────────
+let _cachedPeople = null;
+
+async function fetchPeopleCache() {
+  if (_cachedPeople) return _cachedPeople;
+  try {
+    const data = await api('GET', '/identities');
+    _cachedPeople = data.people || [];
+  } catch { _cachedPeople = []; }
+  return _cachedPeople;
+}
+
+async function populateIdentityDropdowns(selectedPerson, selectedGroup) {
+  const people = await fetchPeopleCache();
+  const groups = [...new Set(people.flatMap(p => p.groups || []))].sort();
+
+  const personSel = document.getElementById('new-person');
+  personSel.innerHTML = '<option value="">any person</option>' +
+    people.map(p => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.id)})</option>`).join('');
+  personSel.value = selectedPerson || '';
+
+  const groupSel = document.getElementById('new-group');
+  groupSel.innerHTML = '<option value="">any group</option>' +
+    groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  groupSel.value = selectedGroup || '';
+}
+
 let editingRuleId = null;
 
 async function editPolicy(ruleId) {
@@ -629,11 +710,12 @@ async function editPolicy(ruleId) {
   document.getElementById('new-id').disabled = false;
   document.getElementById('new-name').value = rule.name || '';
   document.getElementById('new-description').value = rule.description || '';
-  document.getElementById('new-effect').value = rule.effect;
+  document.getElementById('new-effect').value = rule.result;
   document.getElementById('new-priority').value = rule.priority;
   document.getElementById('new-tool').value = (rule.match && rule.match.tool) || '';
   document.getElementById('new-program').value = (rule.match && rule.match.program) || '';
   document.getElementById('new-path').value = (rule.match && rule.match.path) || '';
+  await populateIdentityDropdowns(rule.match && rule.match.person, rule.match && rule.match.group);
 
   document.getElementById('policy-modal-title').textContent = 'Edit Policy Rule';
   document.getElementById('policy-modal-submit').textContent = 'Save Changes';
@@ -645,11 +727,13 @@ async function submitEditPolicy() {
   const newId = document.getElementById('new-id').value.trim();
   const name = document.getElementById('new-name').value.trim();
   const desc = document.getElementById('new-description').value.trim();
-  const effect   = document.getElementById('new-effect').value;
+  const result   = document.getElementById('new-effect').value;
   const priority = parseInt(document.getElementById('new-priority').value) || 0;
   const tool    = document.getElementById('new-tool').value.trim();
   const program = document.getElementById('new-program').value.trim();
   const path    = document.getElementById('new-path').value.trim();
+  const person  = document.getElementById('new-person').value.trim();
+  const group   = document.getElementById('new-group').value.trim();
   const err     = document.getElementById('add-policy-error');
   err.className = 'banner';
 
@@ -659,6 +743,8 @@ async function submitEditPolicy() {
   if (tool)    match.tool    = tool;
   if (program) match.program = program;
   if (path)    match.path    = path;
+  if (person)  match.person  = person;
+  if (group)   match.group   = group;
 
   try {
     if (newId !== editingRuleId) {
@@ -669,9 +755,9 @@ async function submitEditPolicy() {
         return;
       }
       await api('DELETE', '/policies/' + editingRuleId);
-      await api('POST', '/policies', { id: newId, name, description: desc, effect, priority, match });
+      await api('POST', '/policies', { id: newId, name, description: desc, result, priority, match });
     } else {
-      await api('PUT', '/policies/' + editingRuleId, { id: editingRuleId, name, description: desc, effect, priority, match });
+      await api('PUT', '/policies/' + editingRuleId, { id: editingRuleId, name, description: desc, result, priority, match });
     }
     closeModal('add-policy-modal');
     clearAddPolicyForm();
@@ -686,11 +772,13 @@ async function submitAddPolicy() {
   const id   = document.getElementById('new-id').value.trim();
   const name = document.getElementById('new-name').value.trim();
   const desc = document.getElementById('new-description').value.trim();
-  const effect   = document.getElementById('new-effect').value;
+  const result   = document.getElementById('new-effect').value;
   const priority = parseInt(document.getElementById('new-priority').value) || 0;
   const tool    = document.getElementById('new-tool').value.trim();
   const program = document.getElementById('new-program').value.trim();
   const path    = document.getElementById('new-path').value.trim();
+  const person  = document.getElementById('new-person').value.trim();
+  const group   = document.getElementById('new-group').value.trim();
   const err     = document.getElementById('add-policy-error');
   err.className = 'banner';
 
@@ -700,9 +788,11 @@ async function submitAddPolicy() {
   if (tool)    match.tool    = tool;
   if (program) match.program = program;
   if (path)    match.path    = path;
+  if (person)  match.person  = person;
+  if (group)   match.group   = group;
 
   try {
-    await api('POST', '/policies', { id, name, description: desc, effect, priority, match });
+    await api('POST', '/policies', { id, name, description: desc, result, priority, match });
     closeModal('add-policy-modal');
     clearAddPolicyForm();
     loadPolicies();
@@ -721,6 +811,7 @@ function clearAddPolicyForm() {
   document.getElementById('policy-modal-title').textContent = 'Add Policy Rule';
   document.getElementById('policy-modal-submit').textContent = 'Add Rule';
   document.getElementById('policy-modal-submit').onclick = submitAddPolicy;
+  populateIdentityDropdowns('', '');
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

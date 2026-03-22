@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # demo.sh — Start both the OC Policy server and nanoclaw with a shared token.
 # Usage: ./demo.sh
+#
+# NOTE: If you changed the nanoclaw policy hook (container/agent-runner/src/index.ts),
+# you must also rebuild the Docker image and clear the per-group source cache:
+#   rm -rf ~/Documents/dev/nanoclaw/data/sessions/telegram_main/agent-runner-src/
+#   cd ~/Documents/dev/nanoclaw/container && docker build -t nanoclaw-agent .
+# Then run this script. The hook runs inside Docker, not in the host tsx process.
 
 set -e
 

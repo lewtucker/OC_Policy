@@ -2,7 +2,9 @@
 
 **Version**: v01
 **Date**: 2026-03-19
-**Status**: Draft
+**Status**: Reference design document
+
+> **Implementation note (2026-03-21):** Phases 1–3b from Section 11 are complete. The enforcement hook (Phase 1), policy engine + CRUD API (Phase 2), approval workflow (Phase 3), and identity/person support with group-based rules (Phase 3b) are all live. See `Progress_Report_v04.md` and `Status.md` for current state. The ZPL-style attribute-based policy language described in Sections 4–6 remains a design target for later phases.
 
 ---
 

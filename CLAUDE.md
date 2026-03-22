@@ -42,6 +42,30 @@ src/server/  Python FastAPI policy server (Phase 1)
 public/      Vercel static output — copy of latest ui/ file as index.html
 ```
 
+## Nanoclaw Deployment Notes
+
+### Updating the policy hook in nanoclaw
+
+The policy hook lives in `~/Documents/dev/nanoclaw/container/agent-runner/src/index.ts`.
+
+**Critical gotcha**: nanoclaw copies `container/agent-runner/src/` into a per-group cache at
+`data/sessions/<group>/agent-runner-src/` on first run, and **never updates it automatically**.
+The Docker container mounts this cached copy (not the original source) and recompiles it at startup.
+
+So when you change `index.ts`, the change is silently ignored unless you:
+
+1. Delete the stale cache: `rm -rf ~/Documents/dev/nanoclaw/data/sessions/telegram_main/agent-runner-src/`
+2. Rebuild the Docker image: `cd ~/Documents/dev/nanoclaw/container && docker build -t nanoclaw-agent .`
+3. Restart nanoclaw — it will re-copy from source into the cache on next container spawn
+
+Also note: nanoclaw runs as `npx tsx src/index.ts` (from source) on the host, but the **agent** (the part that runs tool calls and the policy hook) runs inside Docker. Restarting the host process is not enough — the Docker image and cache must both be updated.
+
+### Identity resolution
+
+- People are defined in `src/server/identities.yaml` with `telegram_id: "tg:<numeric_id>"`
+- The `tg:` prefix is part of the identity — nanoclaw sends `chatJid` as `tg:<id>`
+- Per-group caches under `data/sessions/` are gitignored and must be deleted manually when the hook changes
+
 ## Key Documents
 
 - [docs/Policy_Inst.md](docs/Policy_Inst.md) — Project brief and feature intent
