@@ -23,6 +23,12 @@ if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
 else
   echo "  Telegram notifications: enabled."
 fi
+
+if [ -z "$ANTHROPIC_API_KEY" ]; then
+  echo "  Note: ANTHROPIC_API_KEY not set — NL policy chat disabled."
+else
+  echo "  NL policy chat: enabled."
+fi
 echo ""
 echo "  Starting OC Policy Server on http://localhost:8080"
 echo "  Open http://localhost:8080 in your browser to access the UI."

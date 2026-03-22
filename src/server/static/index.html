@@ -147,6 +147,44 @@
     .banner.error { background: rgba(239,68,68,.12); border: 1px solid var(--red-dim); color: var(--red); }
     .banner.info  { background: rgba(59,130,246,.12); border: 1px solid var(--blue-dim); color: var(--blue); }
 
+    /* ── Chat panel ── */
+    .chat-fab { position: fixed; bottom: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 200; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+    .chat-fab:hover { transform: scale(1.08); }
+    .chat-fab.hidden { display: none; }
+
+    .chat-panel { position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 210; display: flex; flex-direction: column; transition: right .25s ease; box-shadow: -4px 0 24px rgba(0,0,0,.15); }
+    .chat-panel.open { right: 0; }
+
+    .chat-header { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .chat-header-title { font-size: 14px; font-weight: 600; }
+    .chat-header-sub { font-size: 11px; color: var(--muted); }
+    .chat-close { background: none; border: none; font-size: 18px; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+    .chat-close:hover { background: var(--surface2); color: var(--text); }
+
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+    .chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
+    .chat-msg.user { align-self: flex-end; background: var(--blue); color: #fff; border-bottom-right-radius: 3px; }
+    .chat-msg.assistant { align-self: flex-start; background: var(--surface2); color: var(--text); border-bottom-left-radius: 3px; }
+    .chat-msg.assistant code { font-family: var(--mono); font-size: 12px; background: rgba(0,0,0,.06); padding: 1px 4px; border-radius: 3px; }
+    .chat-msg.system { align-self: center; background: rgba(34,197,94,.12); color: var(--green); font-size: 12px; border-radius: 6px; padding: 6px 12px; }
+    .chat-msg.error { align-self: center; background: rgba(239,68,68,.12); color: var(--red); font-size: 12px; border-radius: 6px; padding: 6px 12px; }
+
+    .chat-rule-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 8px; font-size: 12px; }
+    .chat-rule-card pre { font-family: var(--mono); font-size: 11px; background: var(--surface2); padding: 8px 10px; border-radius: 5px; margin: 8px 0; overflow-x: auto; white-space: pre; }
+    .chat-rule-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+    .chat-input-row { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+    .chat-input-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px; font-family: var(--sans); }
+    .chat-input-row input:focus { outline: none; border-color: var(--blue); }
+    .chat-input-row input::placeholder { color: var(--muted); }
+    .chat-send { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .chat-send:hover { opacity: .85; }
+    .chat-send:disabled { opacity: .4; cursor: not-allowed; }
+
+    .chat-typing { align-self: flex-start; color: var(--muted); font-size: 12px; padding: 6px 0; }
+    .chat-typing::after { content: '...'; animation: dots 1.2s steps(4, end) infinite; }
+    @keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
+
     /* ── Token setup ── */
     #token-modal .modal { max-width: 400px; }
     #token-modal p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.5; }
@@ -370,6 +408,26 @@
       <button class="btn btn-ghost" onclick="closeModal('add-policy-modal')">Cancel</button>
       <button class="btn btn-primary" id="policy-modal-submit" onclick="submitAddPolicy()">Add Rule</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Chat Panel ────────────────────────────────────────────────────────── -->
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()" title="Policy assistant">💬</button>
+
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div>
+      <div class="chat-header-title">Policy Assistant</div>
+      <div class="chat-header-sub">Describe rules in plain English</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg assistant">Hi! I can help you create, modify, or understand policy rules. Try something like:<br><br>• "block curl"<br>• "let admins read employee files"<br>• "require approval for web searches"<br>• "why was that blocked?"</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chat-input" placeholder="e.g. block the agent from running rm" onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send" id="chat-send" onclick="sendChat()">Send</button>
   </div>
 </div>
 
@@ -839,6 +897,173 @@ function showBanner(el, msg) {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function closeModalOnOverlay(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+// ── Chat Panel ────────────────────────────────────────────────────────────
+let chatHistory = [];
+let chatBusy = false;
+
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const fab = document.getElementById('chat-fab');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    fab.classList.add('hidden');
+    document.getElementById('chat-input').focus();
+  } else {
+    fab.classList.remove('hidden');
+  }
+}
+
+function addChatMsg(role, html) {
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.innerHTML = html;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+function formatReply(text) {
+  // Strip PROPOSED_RULE blocks from displayed text (we render them as cards)
+  let clean = text.replace(/```PROPOSED_RULE\s*\n[\s\S]*?\n```/g, '').trim();
+  // Basic markdown-like formatting
+  clean = esc(clean)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  return clean;
+}
+
+function renderRuleCard(rules, action, ruleId) {
+  const box = document.getElementById('chat-messages');
+
+  if (action === 'delete') {
+    const card = document.createElement('div');
+    card.className = 'chat-rule-card';
+    card.innerHTML = `
+      <strong>Delete rule:</strong> <code>${esc(ruleId)}</code>
+      <div class="chat-rule-actions">
+        <button class="btn btn-red btn-sm chat-del-btn">Delete</button>
+        <button class="btn btn-ghost btn-sm chat-cancel-btn">Cancel</button>
+      </div>`;
+    const capturedId = ruleId;
+    card.querySelector('.chat-del-btn').addEventListener('click', function() { applyDelete(capturedId, this); });
+    card.querySelector('.chat-cancel-btn').addEventListener('click', function() { this.closest('.chat-rule-card').remove(); addChatMsg('system','Cancelled.'); });
+    box.appendChild(card);
+    box.scrollTop = box.scrollHeight;
+    return;
+  }
+
+  if (!rules || !rules.length) return;
+
+  for (const rule of rules) {
+    const card = document.createElement('div');
+    card.className = 'chat-rule-card';
+    const yaml = `id: ${rule.id}\nname: ${rule.name}\ndescription: ${rule.description}\nresult: ${rule.result}\npriority: ${rule.priority}\nmatch:\n` +
+      Object.entries(rule.match || {}).map(([k,v]) => `  ${k}: ${v}`).join('\n');
+    card.innerHTML = `
+      <strong>Proposed rule:</strong>
+      <pre>${esc(yaml)}</pre>
+      <div class="chat-rule-actions">
+        <button class="btn btn-green btn-sm chat-add-btn">Add Rule</button>
+        <button class="btn btn-ghost btn-sm chat-cancel-btn">Cancel</button>
+      </div>`;
+    // Attach handlers with closure over rule object
+    card.querySelector('.chat-add-btn').addEventListener('click', function() { applyRule(this, rule); });
+    card.querySelector('.chat-cancel-btn').addEventListener('click', function() { this.closest('.chat-rule-card').remove(); addChatMsg('system','Cancelled.'); });
+    box.appendChild(card);
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+async function applyRule(btn, rule) {
+  const card = btn.closest('.chat-rule-card');
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  try {
+    await api('POST', '/policies', rule);
+    card.innerHTML = '<div style="color:var(--green);font-size:12px">✓ Rule <code>' + esc(rule.id) + '</code> added.</div>';
+    chatHistory.push({ role: 'user', content: '[confirmed: added rule ' + rule.id + ']' });
+    loadPolicies();
+    loadDashboard();
+  } catch(e) {
+    card.innerHTML = '<div style="color:var(--red);font-size:12px">Failed to add rule — ' + esc(e.message) + '</div>';
+  }
+}
+
+async function applyDelete(ruleId, btn) {
+  const card = btn.closest('.chat-rule-card');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  try {
+    await api('DELETE', '/policies/' + ruleId);
+    card.innerHTML = '<div style="color:var(--green);font-size:12px">✓ Rule <code>' + esc(ruleId) + '</code> deleted.</div>';
+    chatHistory.push({ role: 'user', content: '[confirmed: deleted rule ' + ruleId + ']' });
+    loadPolicies();
+    loadDashboard();
+  } catch(e) {
+    card.innerHTML = '<div style="color:var(--red);font-size:12px">Failed to delete rule — ' + esc(e.message) + '</div>';
+  }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || chatBusy) return;
+
+  input.value = '';
+  addChatMsg('user', esc(msg));
+  chatHistory.push({ role: 'user', content: msg });
+
+  chatBusy = true;
+  document.getElementById('chat-send').disabled = true;
+
+  // Show typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'chat-typing';
+  typing.textContent = 'Thinking';
+  document.getElementById('chat-messages').appendChild(typing);
+  document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
+  try {
+    const res = await fetch(SERVER_URL + '/chat', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + TOKEN,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1) }),
+    });
+
+    typing.remove();
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'HTTP ' + res.status }));
+      addChatMsg('error', esc(err.detail || 'Request failed'));
+      chatBusy = false;
+      document.getElementById('chat-send').disabled = false;
+      return;
+    }
+
+    const data = await res.json();
+    const replyHtml = formatReply(data.reply);
+    addChatMsg('assistant', replyHtml);
+    chatHistory.push({ role: 'assistant', content: data.reply });
+
+    // Render rule cards if proposed
+    if (data.proposed_action) {
+      renderRuleCard(data.proposed_rules, data.proposed_action, data.proposed_rule_id);
+    }
+  } catch(e) {
+    typing.remove();
+    addChatMsg('error', 'Could not reach the server.');
+  }
+
+  chatBusy = false;
+  document.getElementById('chat-send').disabled = false;
+  document.getElementById('chat-input').focus();
+}
 </script>
 </body>
 </html>

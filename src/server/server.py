@@ -14,6 +14,7 @@ from policy_engine import PolicyEngine
 from approvals import ApprovalStore
 from audit import AuditLog
 from identity import IdentityStore
+from nl_policy import create_chat_handler
 
 app = FastAPI(title="OC Policy Server", version="0.4.0")
 
@@ -69,6 +70,11 @@ class ResolveRequest(BaseModel):
 def require_agent_token(authorization: str) -> None:
     if authorization != f"Bearer {AGENT_TOKEN}":
         raise HTTPException(status_code=401, detail="Invalid agent token")
+
+
+# ── NL Policy Chat ────────────────────────────────────────────────────────────
+nl_router = create_chat_handler(engine, identities, require_agent_token)
+app.include_router(nl_router)
 
 
 # ── Telegram notification ─────────────────────────────────────────────────────

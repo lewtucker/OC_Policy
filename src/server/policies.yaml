@@ -1,5 +1,12 @@
 version: 1
 policies:
+- id: admin-allow-all
+  name: Admin group full access
+  description: Allow admin group to perform any action
+  result: allow
+  priority: 80
+  match:
+    group: admin
 - id: lew-can-git
   name: Lew can run git
   description: Allow git commands for lew specifically
@@ -16,6 +23,14 @@ policies:
   match:
     group: admin
     path: /workspace/employees/*
+- id: deny-eng-finance
+  name: Deny engineering finance access
+  description: Block engineering group from accessing financial files
+  result: deny
+  priority: 55
+  match:
+    group: engineering
+    path: /workspace/finance/*
 - id: deny-eng-read-employees
   name: Deny engineering employee DB
   description: Engineering group cannot read employee files
@@ -24,6 +39,39 @@ policies:
   match:
     group: engineering
     path: /workspace/employees/*
+- id: allow-eng-git
+  name: Engineering can use git
+  description: Allow engineering group to run git commands
+  result: allow
+  priority: 50
+  match:
+    tool: Bash
+    program: git
+    group: engineering
+- id: allow-eng-bash
+  name: Engineering can run Bash
+  description: Allow engineering group to run shell commands
+  result: allow
+  priority: 45
+  match:
+    tool: Bash
+    group: engineering
+- id: allow-eng-websearch
+  name: Engineering can web search
+  description: Allow engineering group to perform web searches
+  result: allow
+  priority: 45
+  match:
+    tool: WebSearch
+    group: engineering
+- id: deny-rm
+  name: Block rm
+  description: Deny all shell commands starting with rm
+  result: deny
+  priority: 35
+  match:
+    tool: Bash
+    program: rm
 - id: 008
   name: Curl Request
   description: Force approval for curl requests

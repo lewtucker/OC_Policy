@@ -37,6 +37,7 @@
 | Document | Description |
 | --- | --- |
 | [Plan_NL_Policy_Authoring_v01.md](Plan_NL_Policy_Authoring_v01.md) | Natural language policy authoring — let users express rules in plain English; Phase 1 as a Claude skill |
+| [Plan_Policy_Change_Authorization.md](Plan_Policy_Change_Authorization.md) | Rules and identity on policy changes — per-person tokens, admin-only writes, protected rules, escalation prevention |
 | [Plan_Identity_Phase3b.md](Plan_Identity_Phase3b.md) | Identity/person support implementation plan (Phase 3b — complete) |
 
 ## Guides
