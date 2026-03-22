@@ -102,7 +102,7 @@ def require_admin_token(authorization: str) -> "Person":
 def run_analysis():
     people = [p.id for p in identities.list_all()]
     groups = list({g for p in identities.list_all() for g in p.groups})
-    findings = analyze(engine.rules, people, groups)
+    findings = analyze(engine.rules, people, groups, audit_entries=audit.recent(10000))
     return findings
 
 
@@ -152,7 +152,7 @@ async def check(req: CheckRequest, authorization: str = Header(...)):
     subject_id = subject.id if subject else None
     approval_id = None
     if effect == "pending" and rule_id:
-        record = approvals.create(req.tool, req.params, rule_id)
+        record = approvals.create(req.tool, req.params, rule_id, subject_id=subject_id)
         approval_id = record.id
         print(f"[PENDING] tool={req.tool!r}  subject={subject_id}  approval_id={approval_id}  rule={rule_id!r}")
         if req.channel_id:
@@ -241,6 +241,8 @@ async def update_policy(rule_id: str, rule: RuleIn, authorization: str = Header(
     caller = require_admin_token(authorization)
     try:
         updated = engine.update(rule_id, rule.model_dump())
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
     findings = run_analysis()
@@ -255,8 +257,11 @@ async def update_policy(rule_id: str, rule: RuleIn, authorization: str = Header(
 @app.delete("/policies/{rule_id}", status_code=204)
 async def delete_policy(rule_id: str, authorization: str = Header(...)):
     caller = require_admin_token(authorization)
-    if not engine.remove(rule_id):
-        raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found")
+    try:
+        if not engine.remove(rule_id):
+            raise HTTPException(status_code=404, detail=f"Rule '{rule_id}' not found")
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     print(f"[POLICY] removed rule '{rule_id}' by {caller.id}")
 
 

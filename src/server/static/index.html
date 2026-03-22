@@ -53,7 +53,7 @@
     main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
     .page { display: none; flex-direction: column; height: 100%; overflow: hidden; }
     .page.active { display: flex; }
-    .page-header { padding: 24px 28px 0; flex-shrink: 0; }
+    .page-header { padding: 24px 76px 0 28px; flex-shrink: 0; }
     .page-title { font-size: 20px; font-weight: 600; }
     .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
     .page-body { flex: 1; overflow-y: auto; padding: 20px 28px 28px; }
@@ -128,6 +128,19 @@
     .feed-rule { color: var(--muted); font-size: 11px; width: 160px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .feed-time { color: var(--muted); font-size: 11px; width: 70px; text-align: right; flex-shrink: 0; }
 
+    /* ── Policy Health ── */
+    .health-summary { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .health-badge { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .health-badge.error   { background: rgba(239,68,68,.12);  color: var(--red); }
+    .health-badge.warning { background: rgba(245,158,11,.12); color: var(--amber); }
+    .health-badge.info    { background: rgba(59,130,246,.12); color: var(--blue); }
+    .health-badge.ok      { background: rgba(34,197,94,.12);  color: var(--green); }
+    .finding-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .finding-row:last-child { border-bottom: none; }
+    .finding-sev { flex-shrink: 0; width: 56px; text-align: center; }
+    .finding-msg { flex: 1; color: var(--text); line-height: 1.4; }
+    .finding-rule { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
     /* ── Modals ── */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
     .modal-overlay.open { display: flex; }
@@ -149,11 +162,11 @@
     .banner.info  { background: rgba(59,130,246,.12); border: 1px solid var(--blue-dim); color: var(--blue); }
 
     /* ── Chat panel ── */
-    .chat-fab { position: fixed; top: 24px; right: 24px; width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; border: none; font-size: 22px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 200; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
+    .chat-fab { position: fixed; top: 20px; right: 24px; width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: #fff; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25); z-index: 200; display: flex; align-items: center; justify-content: center; transition: transform .15s; }
     .chat-fab:hover { transform: scale(1.08); }
     .chat-fab.hidden { display: none; }
 
-    .chat-panel { position: fixed; top: 88px; right: 24px; width: 400px; height: min(560px, calc(100vh - 110px)); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; z-index: 210; display: none; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.2); overflow: hidden; }
+    .chat-panel { position: fixed; top: 138px; right: 24px; width: 400px; height: min(560px, calc(100vh - 110px)); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; z-index: 210; display: none; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.2); overflow: hidden; }
     .chat-panel.open { display: flex; }
     .chat-panel.dragging { transition: none; user-select: none; }
 
@@ -275,6 +288,7 @@
           </div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -302,6 +316,12 @@
     </div>
     <div class="page-body">
       <div class="banner error" id="policies-error"></div>
+      <div class="section-header">
+        <span class="section-title">Policy Health</span>
+      </div>
+      <div class="card" id="policies-health" style="margin-bottom:24px">
+        <div class="muted" style="padding:20px;text-align:center">Loading…</div>
+      </div>
       <div class="card">
         <table>
           <thead><tr><th>Name</th><th>ID</th><th>Description</th><th>Result</th><th>Match</th><th>Priority</th><th></th></tr></thead>
@@ -340,7 +360,10 @@
     </div>
     <div class="form-row">
       <label>Agent Token</label>
-      <input type="password" id="input-token" placeholder="your token here" />
+      <div style="display:flex;gap:8px">
+        <input type="password" id="input-token" placeholder="your token here" style="flex:1" />
+        <button type="button" onclick="toggleTokenReveal()" id="token-reveal-btn" style="flex-shrink:0;padding:0 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:12px">Show</button>
+      </div>
     </div>
     <div class="banner error" id="token-error"></div>
     <div class="modal-footer">
@@ -353,20 +376,20 @@
 <div class="modal-overlay" id="add-policy-modal" onclick="closeModalOnOverlay(event,'add-policy-modal')">
   <div class="modal">
     <div class="modal-title" id="policy-modal-title">Add Policy Rule</div>
+    <div class="form-row">
+      <label>Display Name</label>
+      <input type="text" id="new-name" placeholder="Allow NPM Commands" oninput="autoFillRuleId(this.value)" />
+      <div class="form-hint">Human-friendly name — Rule ID will be filled in automatically</div>
+    </div>
     <div class="form-row-inline">
       <div class="form-row" style="margin-bottom:0">
         <label>Rule ID *</label>
-        <input type="text" id="new-id" placeholder="allow-npm" />
+        <input type="text" id="new-id" placeholder="allow-npm" oninput="idManuallyEdited=true" />
       </div>
       <div class="form-row" style="margin-bottom:0">
         <label>Priority</label>
         <input type="number" id="new-priority" value="10" min="0" max="9999" />
       </div>
-    </div>
-    <div class="form-row" style="margin-top:14px">
-      <label>Display Name</label>
-      <input type="text" id="new-name" placeholder="Allow NPM Commands" />
-      <div class="form-hint">Human-friendly name (optional)</div>
     </div>
     <div class="form-row">
       <label>Description</label>
@@ -485,6 +508,14 @@ async function api(method, path, body) {
 }
 
 // ── Token ──────────────────────────────────────────────────────────────────
+function toggleTokenReveal() {
+  const input = document.getElementById('input-token');
+  const btn   = document.getElementById('token-reveal-btn');
+  const hiding = input.type === 'text';
+  input.type   = hiding ? 'password' : 'text';
+  btn.textContent = hiding ? 'Show' : 'Hide';
+}
+
 async function saveToken() {
   const url   = document.getElementById('input-server-url').value.trim().replace(/\/$/, '');
   const token = document.getElementById('input-token').value.trim();
@@ -638,6 +669,7 @@ async function loadApprovals() {
           <span class="approval-tool">${esc(a.tool)}</span>
           <span class="dim">·</span>
           <span class="muted" style="font-size:12px">rule: ${esc(a.rule_id)}</span>
+          ${a.subject_id ? `<span class="dim">·</span><span style="font-size:12px">👤 ${esc(a.subject_id)}</span>` : ''}
           <span class="approval-time">${relTime(a.created_at)}</span>
         </div>
         <div class="approval-command">${esc(cmd)}</div>
@@ -679,24 +711,75 @@ function updateApprovalBadge() {
 }
 
 // ── Policies ───────────────────────────────────────────────────────────────
+function renderHealthPanel(analysis, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!analysis) {
+    el.innerHTML = '<div class="muted" style="padding:12px">Analysis unavailable (admin token required)</div>';
+    return;
+  }
+  const { findings, summary } = analysis;
+  const badges = [];
+  if (summary.errors)   badges.push(`<span class="health-badge error">✕ ${summary.errors} error${summary.errors>1?'s':''}</span>`);
+  if (summary.warnings) badges.push(`<span class="health-badge warning">⚠ ${summary.warnings} warning${summary.warnings>1?'s':''}</span>`);
+  if (summary.info)     badges.push(`<span class="health-badge info">ℹ ${summary.info} info</span>`);
+  if (!findings.length) badges.push(`<span class="health-badge ok">✓ No issues found</span>`);
+
+  const rows = findings.map(f => `
+    <div class="finding-row">
+      <div class="finding-sev"><span class="pill ${f.severity === 'error' ? 'deny' : f.severity === 'warning' ? 'pending' : 'allow'}">${f.severity}</span></div>
+      <div class="finding-msg">
+        ${esc(f.message)}
+        <div class="finding-rule">${esc(f.rule_id)}${f.related_id ? ' · ' + esc(f.related_id) : ''}</div>
+      </div>
+    </div>`).join('');
+
+  const toggleBtn = findings.length
+    ? `<button class="btn-ghost-sm" id="${elId}-toggle" onclick="toggleHealthPanel('${elId}')" style="margin-left:auto;font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--muted);cursor:pointer">▼ details</button>`
+    : '';
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="health-summary" style="margin-bottom:0">${badges.join('')}</div>
+      ${toggleBtn}
+    </div>
+    <div id="${elId}-details" style="display:none;margin-top:14px">${rows}</div>`;
+}
+
+function toggleHealthPanel(elId) {
+  const details = document.getElementById(elId + '-details');
+  const btn     = document.getElementById(elId + '-toggle');
+  if (!details) return;
+  const expanded = details.style.display !== 'none';
+  details.style.display = expanded ? 'none' : 'block';
+  btn.textContent = expanded ? '▼ details' : '▲ hide';
+}
+
 async function loadPolicies() {
   try {
-    const data  = document.getElementById('policy-tbody');
-    const result = await api('GET', '/policies');
-    const rules  = result.policies;
+    const data = document.getElementById('policy-tbody');
+    const [result, analysis] = await Promise.all([
+      api('GET', '/policies'),
+      api('GET', '/policies/analyze').catch(() => null),
+    ]);
+    renderHealthPanel(analysis, 'policies-health');
+    const rules = result.policies;
     if (!rules.length) {
       data.innerHTML = '<tr><td colspan="7" class="muted" style="padding:20px;text-align:center">No policies defined</td></tr>';
       return;
     }
     data.innerHTML = rules.map(r => `
       <tr>
-        <td style="font-size:13px">${esc(r.name || r.id)}</td>
+        <td style="font-size:13px">${r.protected ? '🔒 ' : ''}${esc(r.name || r.id)}</td>
         <td class="mono muted" style="font-size:11px">${esc(r.id)}</td>
         <td class="dim">${esc(r.description || '—')}</td>
         <td><span class="pill ${r.result}">${r.result}</span></td>
         <td class="mono muted" style="font-size:11px">${matchLabel(r.match)}</td>
         <td class="muted">${r.priority}</td>
-        <td style="white-space:nowrap"><button class="btn-icon" onclick="editPolicy('${esc(r.id)}')" title="Edit rule">✎</button> <button class="btn-icon" onclick="deletePolicy('${r.id}',this)" title="Delete rule">✕</button></td>
+        <td style="white-space:nowrap">${r.protected
+          ? '<span class="muted" style="font-size:11px;padding:0 8px" title="Protected rule — cannot be modified">locked</span>'
+          : `<button class="btn-icon" onclick="editPolicy('${esc(r.id)}')" title="Edit rule">✎</button> <button class="btn-icon" onclick="deletePolicy('${r.id}',this)" title="Delete rule">✕</button>`
+        }</td>
       </tr>`).join('');
     document.getElementById('policies-error').className = 'banner';
   } catch(e) {
@@ -721,7 +804,8 @@ async function deleteAllPolicies() {
   if (!confirm('Do you really want to delete all the rules? This means no access to anything.')) return;
   try {
     const data = await api('GET', '/policies');
-    await Promise.all(data.policies.map(r => api('DELETE', '/policies/' + r.id)));
+    const deletable = data.policies.filter(r => !r.protected);
+    await Promise.all(deletable.map(r => api('DELETE', '/policies/' + r.id)));
     loadPolicies();
     loadDashboard();
   } catch(e) {
@@ -886,8 +970,21 @@ async function submitAddPolicy() {
   }
 }
 
+let idManuallyEdited = false;
+
+function autoFillRuleId(name) {
+  if (idManuallyEdited) return;
+  const kebab = name.trim().toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')   // strip non-alphanumeric
+    .replace(/\s+/g, '-')            // spaces → hyphens
+    .replace(/-+/g, '-')             // collapse multiple hyphens
+    .replace(/^-|-$/g, '');          // trim leading/trailing hyphens
+  document.getElementById('new-id').value = kebab;
+}
+
 function clearAddPolicyForm() {
   editingRuleId = null;
+  idManuallyEdited = false;
   ['new-id','new-name','new-description','new-tool','new-program','new-path'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('new-id').disabled = false;
   document.getElementById('new-priority').value = '10';

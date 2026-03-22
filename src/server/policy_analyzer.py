@@ -1,13 +1,18 @@
 """
-Policy Analyzer — Phase D Tier 1
+Policy Analyzer — Phase D Tiers 1 & 2
 Inspects the full rule set for shadows, conflicts, orphan identity references,
-and gaps. Returns structured findings with severity levels.
+gaps, unused rules, overly-broad allows, and uncovered groups.
 
 Tier 1 checks (deterministic, run on every policy write):
-  - shadow:   a higher-priority rule makes a lower rule unreachable
-  - conflict: two rules at equal priority match the same conditions but differ in result
-  - orphan:   a rule references a person or group not found in identities
-  - gap:      a catch-all match={} rule exists, meaning some actions fall through silently
+  - shadow:    a higher-priority rule makes a lower rule unreachable
+  - conflict:  two rules at equal priority match the same conditions but differ in result
+  - orphan:    a rule references a person or group not found in identities
+  - gap:       a catch-all match={} rule exists, meaning some actions fall through silently
+
+Tier 2 checks (heuristic, require audit history):
+  - unused:    a rule has never matched anything in the audit log
+  - broad:     an allow rule has 0 or 1 match conditions (very permissive)
+  - uncovered: a known group has no rules targeting it
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ Severity = Literal["error", "warning", "info"]
 @dataclass
 class Finding:
     severity: Severity
-    check: str           # "shadow" | "conflict" | "orphan" | "gap"
+    check: str           # "shadow" | "conflict" | "orphan" | "gap" | "unused" | "broad" | "uncovered"
     rule_id: str         # primary rule involved
     related_id: str | None  # second rule (for shadow/conflict)
     message: str
@@ -76,10 +81,16 @@ def _matches_overlap(a: dict, b: dict) -> bool:
     return True
 
 
-def analyze(rules: list[Rule], known_people: list[str], known_groups: list[str]) -> list[Finding]:
+def analyze(
+    rules: list[Rule],
+    known_people: list[str],
+    known_groups: list[str],
+    audit_entries: list | None = None,
+) -> list[Finding]:
     """
-    Run all Tier 1 checks against the rule list.
+    Run Tier 1 (deterministic) and optionally Tier 2 (heuristic) checks.
     Rules must be sorted by priority descending (as PolicyEngine maintains them).
+    Pass audit_entries to enable Tier 2 checks.
     """
     findings: list[Finding] = []
 
@@ -183,6 +194,58 @@ def analyze(rules: list[Rule], known_people: list[str], known_groups: list[str])
                     f"Unmatched actions will queue for approval rather than being denied outright."
                 ),
             ))
+
+    # ── Tier 2: Broad allow rules ──────────────────────────────────────────────
+    # Any allow rule with 0 or 1 match conditions is very permissive.
+    # (0-condition catch-alls are already covered by gap check above.)
+    for rule in rules:
+        if rule.result == "allow" and len(rule.match) <= 1 and not rule.match:
+            # Already flagged by gap check — skip
+            pass
+        elif rule.result == "allow" and len(rule.match) == 1:
+            key, val = next(iter(rule.match.items()))
+            findings.append(Finding(
+                severity="info",
+                check="broad",
+                rule_id=rule.id,
+                related_id=None,
+                message=(
+                    f"Rule '{rule.id}' allows everything matching only {key}={val!r}. "
+                    f"Consider adding more specific conditions to limit scope."
+                ),
+            ))
+
+    # ── Tier 2: Uncovered groups ───────────────────────────────────────────────
+    # Groups that exist in identities but are not referenced in any rule.
+    groups_in_rules = {r.match["group"] for r in rules if "group" in r.match}
+    for group in known_groups:
+        if group not in groups_in_rules:
+            findings.append(Finding(
+                severity="info",
+                check="uncovered",
+                rule_id="—",
+                related_id=None,
+                message=(
+                    f"Group '{group}' has no rules targeting it. "
+                    f"Members will only match generic (non-group-scoped) rules."
+                ),
+            ))
+
+    # ── Tier 2: Unused rules (requires audit) ─────────────────────────────────
+    if audit_entries:
+        matched_rule_ids = {e.rule_id for e in audit_entries if e.rule_id}
+        for rule in rules:
+            if rule.id not in matched_rule_ids:
+                findings.append(Finding(
+                    severity="info",
+                    check="unused",
+                    rule_id=rule.id,
+                    related_id=None,
+                    message=(
+                        f"Rule '{rule.id}' has never matched any request in the audit log. "
+                        f"It may be redundant, misconfigured, or simply not yet exercised."
+                    ),
+                ))
 
     return findings
 

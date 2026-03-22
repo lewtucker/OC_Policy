@@ -25,6 +25,7 @@ class Rule:
     priority: int = 0
     name: str = ""
     description: str = ""
+    protected: bool = False
 
     def to_dict(self) -> dict:
         d = {
@@ -37,6 +38,8 @@ class Rule:
         }
         if not self.name:
             del d["name"]
+        if self.protected:
+            d["protected"] = True
         return d
 
 
@@ -65,6 +68,7 @@ class PolicyEngine:
                 priority=p.get("priority", 0),
                 name=p.get("name", ""),
                 description=p.get("description", ""),
+                protected=p.get("protected", False),
             )
             for p in data.get("policies", [])
         ]
@@ -106,9 +110,11 @@ class PolicyEngine:
         return rule
 
     def update(self, rule_id: str, rule_data: dict) -> Rule:
-        """Update an existing rule in-place and persist. Raises KeyError if not found."""
+        """Update an existing rule in-place and persist. Raises KeyError if not found, PermissionError if protected."""
         for i, r in enumerate(self._rules):
             if r.id == rule_id:
+                if r.protected:
+                    raise PermissionError(f"Rule '{rule_id}' is protected and cannot be modified")
                 updated = Rule(
                     id=rule_id,
                     result=rule_data["result"],
@@ -124,7 +130,12 @@ class PolicyEngine:
         raise KeyError(f"Rule '{rule_id}' not found")
 
     def remove(self, rule_id: str) -> bool:
-        """Remove a rule by ID and persist. Returns True if found."""
+        """Remove a rule by ID and persist. Returns True if found. Raises PermissionError if protected."""
+        for r in self._rules:
+            if r.id == rule_id:
+                if r.protected:
+                    raise PermissionError(f"Rule '{rule_id}' is protected and cannot be deleted")
+                break
         before = len(self._rules)
         self._rules = [r for r in self._rules if r.id != rule_id]
         if len(self._rules) == before:

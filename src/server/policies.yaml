@@ -1,5 +1,12 @@
 version: 1
 policies:
+- id: admin-allow-all
+  name: Admin allow all
+  description: Admin allow all
+  result: allow
+  priority: 85
+  match:
+    person: lew
 - id: git-requires-approval
   name: Require approval for git commands
   description: All git commands require approval before execution
@@ -43,3 +50,4 @@ policies:
   match:
     tool: Bash
     program: rm
+  protected: true

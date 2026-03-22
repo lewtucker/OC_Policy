@@ -18,6 +18,7 @@ class ApprovalRecord:
     verdict: str | None = None       # None = pending; "allow" | "deny" = resolved
     reason: str | None = None
     resolved_at: datetime | None = None
+    subject_id: str | None = None    # person who triggered the request
 
     @property
     def is_pending(self) -> bool:
@@ -33,6 +34,7 @@ class ApprovalRecord:
             "verdict": self.verdict,
             "reason": self.reason,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "subject_id": self.subject_id,
         }
 
 
@@ -40,13 +42,14 @@ class ApprovalStore:
     def __init__(self) -> None:
         self._records: dict[str, ApprovalRecord] = {}
 
-    def create(self, tool: str, params: dict, rule_id: str) -> ApprovalRecord:
+    def create(self, tool: str, params: dict, rule_id: str, subject_id: str | None = None) -> ApprovalRecord:
         record = ApprovalRecord(
             id=str(uuid.uuid4()),
             tool=tool,
             params=params,
             rule_id=rule_id,
             created_at=datetime.now(timezone.utc),
+            subject_id=subject_id,
         )
         self._records[record.id] = record
         return record
