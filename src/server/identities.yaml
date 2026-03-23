@@ -1,22 +1,36 @@
 version: 1
+# API tokens are 12-char random hex strings generated via `python3 -c "import secrets; print(secrets.token_hex(6))"`
+# Keep this file out of version control. Future: migrate to an identity provider or encrypted store (e.g. 1Password).
+
+# Agent runtimes — each gets its own token so the server can distinguish sources
+agents:
+  - id: nanoclaw
+    name: Nanoclaw (lew-mac)
+    token: ltdemotoken
+    description: "Nanoclaw agent runtime on lew-mac-2023"
+  - id: openclaw-kyle
+    name: OpenClaw (kyle-mac)
+    token: openclaw-kyle-token
+    description: "OpenClaw gateway on kyle-mac"
+
 people:
   - id: lew
     name: Lew Tucker
     telegram_id: "tg:6741893378"
     groups: [admin]
-    api_token: "lew-token"
+    api_token: "7e635a1ac749"
   - id: lew-shala
     name: Lew+Shala
     telegram_id: "tg:-5235231470"
     groups: [team]
-    api_token: "lew-shala-token"
+    api_token: "0125cb470441"
   - id: alice
     name: Alice
     telegram_id: "tg:111222333"
     groups: [admin]
-    api_token: "alice-token"
+    api_token: "028acfca2955"
   - id: bob
     name: Bob
     telegram_id: "tg:444555666"
     groups: [engineering]
-    api_token: "bob-token"
+    api_token: "6884a608680a"

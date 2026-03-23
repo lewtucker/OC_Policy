@@ -19,13 +19,14 @@ class ApprovalRecord:
     reason: str | None = None
     resolved_at: datetime | None = None
     subject_id: str | None = None    # person who triggered the request
+    agent_id: str | None = None      # agent runtime that sent the request
 
     @property
     def is_pending(self) -> bool:
         return self.verdict is None
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "id": self.id,
             "tool": self.tool,
             "params": self.params,
@@ -36,13 +37,16 @@ class ApprovalRecord:
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
             "subject_id": self.subject_id,
         }
+        if self.agent_id:
+            d["agent_id"] = self.agent_id
+        return d
 
 
 class ApprovalStore:
     def __init__(self) -> None:
         self._records: dict[str, ApprovalRecord] = {}
 
-    def create(self, tool: str, params: dict, rule_id: str, subject_id: str | None = None) -> ApprovalRecord:
+    def create(self, tool: str, params: dict, rule_id: str, subject_id: str | None = None, agent_id: str | None = None) -> ApprovalRecord:
         record = ApprovalRecord(
             id=str(uuid.uuid4()),
             tool=tool,
@@ -50,6 +54,7 @@ class ApprovalStore:
             rule_id=rule_id,
             created_at=datetime.now(timezone.utc),
             subject_id=subject_id,
+            agent_id=agent_id,
         )
         self._records[record.id] = record
         return record

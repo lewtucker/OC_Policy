@@ -145,19 +145,23 @@ class PolicyEngine:
 
     # ── Evaluation ────────────────────────────────────────────────────────────
 
-    def evaluate(self, tool: str, params: dict, subject: Person | None = None) -> tuple[Effect, str, str | None]:
+    def evaluate(
+        self, tool: str, params: dict, subject: Person | None = None, *, agent_id: str | None = None
+    ) -> tuple[Effect, str, str | None]:
         """
         Returns (effect, reason, matched_rule_id).
         Falls back to ("deny", "No policy permits this action", None) if no rule matches.
         """
         for rule in self._rules:
-            if self._matches(rule, tool, params, subject):
+            if self._matches(rule, tool, params, subject, agent_id=agent_id):
                 reason = rule.description or f"Matched rule '{rule.id}'"
                 return rule.result, reason, rule.id
 
         return "deny", "No policy permits this action", None
 
-    def _matches(self, rule: Rule, tool: str, params: dict, subject: Person | None = None) -> bool:
+    def _matches(
+        self, rule: Rule, tool: str, params: dict, subject: Person | None = None, *, agent_id: str | None = None
+    ) -> bool:
         m = rule.match
 
         # Empty match dict = wildcard (matches everything)
@@ -167,6 +171,11 @@ class PolicyEngine:
         # Tool name
         if "tool" in m and m["tool"] != tool:
             return False
+
+        # Agent runtime (e.g. "nanoclaw", "openclaw-kyle")
+        if "agent" in m:
+            if agent_id is None or m["agent"] != agent_id:
+                return False
 
         # Program (first word of exec command); supports * glob
         if "program" in m:

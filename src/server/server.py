@@ -19,7 +19,7 @@ from policy_analyzer import analyze, summarize
 
 app = FastAPI(title="OC Policy Server", version="0.4.0")
 
-AGENT_TOKEN    = os.environ["OC_POLICY_AGENT_TOKEN"]   # enforcement plugin only (nanoclaw)
+LEGACY_AGENT_TOKEN = os.environ.get("OC_POLICY_AGENT_TOKEN")  # fallback if agent not in identities.yaml
 ADMIN_TOKEN    = os.environ["OC_POLICY_ADMIN_TOKEN"]   # UI, CLI, humans managing policies
 POLICY_FILE    = Path(os.environ.get("OC_POLICY_FILE",   Path(__file__).parent / "policies.yaml"))
 AUDIT_FILE     = Path(os.environ.get("OC_AUDIT_FILE",    Path(__file__).parent / "audit.jsonl"))
@@ -69,10 +69,21 @@ class ResolveRequest(BaseModel):
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
-def require_agent_token(authorization: str) -> None:
-    """Enforcement endpoints only — nanoclaw plugin. No policy management access."""
-    if authorization != f"Bearer {AGENT_TOKEN}":
-        raise HTTPException(status_code=401, detail="Invalid agent token")
+def require_agent_token(authorization: str) -> "Agent | None":
+    """Enforcement endpoints only. Returns the resolved Agent, or None for legacy token."""
+    from identity import Agent as _Agent
+    token = authorization.removeprefix("Bearer ")
+
+    # Try identities.yaml agents first
+    agent = identities.resolve_agent(token)
+    if agent:
+        return agent
+
+    # Fall back to legacy env var token
+    if LEGACY_AGENT_TOKEN and token == LEGACY_AGENT_TOKEN:
+        return None
+
+    raise HTTPException(status_code=401, detail="Invalid agent token")
 
 
 def require_admin_token(authorization: str) -> "Person":
@@ -140,27 +151,28 @@ async def notify_pending(channel_id: str, tool: str, params: dict, approval_id: 
 
 @app.post("/check", response_model=CheckResponse)
 async def check(req: CheckRequest, authorization: str = Header(...)):
-    require_agent_token(authorization)
+    agent = require_agent_token(authorization)
+    agent_id = agent.id if agent else None
 
-    print(f"[DEBUG] /check body: tool={req.tool!r} channel_id={req.channel_id!r}")
+    print(f"[DEBUG] /check body: tool={req.tool!r} channel_id={req.channel_id!r} agent={agent_id!r}")
     subject = None
     if req.channel_id:
         subject = identities.resolve_by_telegram(req.channel_id)
 
-    effect, reason, rule_id = engine.evaluate(req.tool, req.params, subject)
+    effect, reason, rule_id = engine.evaluate(req.tool, req.params, subject, agent_id=agent_id)
 
     subject_id = subject.id if subject else None
     approval_id = None
     if effect == "pending" and rule_id:
-        record = approvals.create(req.tool, req.params, rule_id, subject_id=subject_id)
+        record = approvals.create(req.tool, req.params, rule_id, subject_id=subject_id, agent_id=agent_id)
         approval_id = record.id
-        print(f"[PENDING] tool={req.tool!r}  subject={subject_id}  approval_id={approval_id}  rule={rule_id!r}")
+        print(f"[PENDING] tool={req.tool!r}  agent={agent_id}  subject={subject_id}  approval_id={approval_id}  rule={rule_id!r}")
         if req.channel_id:
             await notify_pending(req.channel_id, req.tool, req.params, approval_id)
     else:
-        print(f"[{effect.upper()}] tool={req.tool!r}  subject={subject_id}  params={req.params}  rule={rule_id!r}")
+        print(f"[{effect.upper()}] tool={req.tool!r}  agent={agent_id}  subject={subject_id}  params={req.params}  rule={rule_id!r}")
 
-    audit.append(req.tool, req.params, effect, rule_id, reason, approval_id, subject_id)
+    audit.append(req.tool, req.params, effect, rule_id, reason, approval_id, subject_id, agent_id=agent_id)
 
     return CheckResponse(verdict=effect, reason=reason, approval_id=approval_id)
 
@@ -176,8 +188,11 @@ async def list_approvals(authorization: str = Header(...), pending_only: bool = 
 
 @app.get("/approvals/{approval_id}")
 async def get_approval(approval_id: str, authorization: str = Header(...)):
-    # Agent token allowed: nanoclaw polls this to check if its pending action was resolved
-    if authorization not in (f"Bearer {AGENT_TOKEN}", f"Bearer {ADMIN_TOKEN}"):
+    # Agent tokens allowed: agents poll this to check if their pending action was resolved
+    token = authorization.removeprefix("Bearer ")
+    is_agent = identities.is_valid_agent_token(token) or (LEGACY_AGENT_TOKEN and token == LEGACY_AGENT_TOKEN)
+    is_admin = token == ADMIN_TOKEN
+    if not is_agent and not is_admin:
         raise HTTPException(status_code=401, detail="Invalid token")
     record = approvals.get(approval_id)
     if record is None:
@@ -286,6 +301,12 @@ async def reload_policies(authorization: str = Header(...)):
 async def list_identities(authorization: str = Header(...)):
     require_admin_token(authorization)
     return {"people": [p.to_dict() for p in identities.list_all()]}
+
+
+@app.get("/agents")
+async def list_agents(authorization: str = Header(...)):
+    require_admin_token(authorization)
+    return {"agents": [a.to_dict() for a in identities.list_agents()]}
 
 
 @app.post("/identities/reload")

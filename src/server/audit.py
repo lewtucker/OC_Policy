@@ -22,6 +22,7 @@ class AuditEntry:
     reason: str
     approval_id: str | None = None
     subject_id: str | None = None
+    agent_id: str | None = None     # which agent runtime sent the request (e.g. "nanoclaw", "openclaw-kyle")
     changed_by: str | None = None   # person ID who made a policy change (policy CRUD only)
 
     def to_dict(self) -> dict:
@@ -36,6 +37,8 @@ class AuditEntry:
             "approval_id": self.approval_id,
             "subject_id": self.subject_id,
         }
+        if self.agent_id:
+            d["agent_id"] = self.agent_id
         if self.changed_by:
             d["changed_by"] = self.changed_by
         return d
@@ -70,6 +73,7 @@ class AuditLog:
                         reason=d["reason"],
                         approval_id=d.get("approval_id"),
                         subject_id=d.get("subject_id"),
+                        agent_id=d.get("agent_id"),
                     ))
                 except Exception:
                     pass  # skip malformed lines
@@ -86,6 +90,7 @@ class AuditLog:
         reason: str,
         approval_id: str | None = None,
         subject_id: str | None = None,
+        agent_id: str | None = None,
         changed_by: str | None = None,
     ) -> AuditEntry:
         entry = AuditEntry(
@@ -98,6 +103,7 @@ class AuditLog:
             reason=reason,
             approval_id=approval_id,
             subject_id=subject_id,
+            agent_id=agent_id,
             changed_by=changed_by,
         )
         self._entries.append(entry)

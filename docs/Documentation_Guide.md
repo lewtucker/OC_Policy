@@ -28,7 +28,8 @@
 
 | Document | Description |
 | --- | --- |
-| [Progress_Report_v05.md](Progress_Report_v05.md) | Phase 3 security hardening — two-token auth, per-person tokens, protected rules, policy analyzer Tier 1+2, NL chat panel, test script *(current)* |
+| [Progress_Report_v06.md](Progress_Report_v06.md) | Phase 3c agent identity — per-runtime tokens, agent-scoped rules, agent in audit/approvals/UI, dashboard layout improvements *(current)* |
+| [Progress_Report_v05.md](Progress_Report_v05.md) | Phase 3 security hardening — two-token auth, per-person tokens, protected rules, policy analyzer Tier 1+2, NL chat panel, test script |
 | [Progress_Report_v04.md](Progress_Report_v04.md) | Phase 3b — identity-aware policies, person/group matching, UI dropdowns, terminology rename |
 | [Progress_Report_v03.md](Progress_Report_v03.md) | Phase 3 live integration with Nanoclaw, persistent audit log, and identity model design work |
 | [Progress_Report_v02.md](Progress_Report_v02.md) | Phases 1, 2, and 2.5 — enforcement plugin, policy engine, approvals queue, and audit log |
