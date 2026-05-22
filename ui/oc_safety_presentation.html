@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Running OpenClaw Safely</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface2: #edf0f8;
+    --border: #d8dff0;
+    --border2: #c4cedf;
+    --text: #1a2035;
+    --muted: #8a97b0;
+    --muted2: #55657f;
+    --accent: #008f74;
+    --accent2: #006f5a;
+    --accent-dim: rgba(0,143,116,0.1);
+    --accent-glow: rgba(0,143,116,0.05);
+    --warn: #c05a10;
+    --warn-dim: rgba(192,90,16,0.1);
+    --ok: #008f74;
+    --ok-dim: rgba(0,143,116,0.1);
+    --err: #c42038;
+    --err-dim: rgba(196,32,56,0.08);
+    --code-bg: #edf0f8;
+    --slide-w: 1100px;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Radial glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20%; left: 50%; transform: translateX(-50%);
+    width: 80vw; height: 80vw;
+    background: radial-gradient(ellipse, rgba(0,143,116,0.06) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── SLIDE SYSTEM ── */
+  #deck {
+    position: fixed; inset: 0;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 48px 64px;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.45s cubic-bezier(.4,0,.2,1), transform 0.45s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+  }
+
+  .slide.active {
+    opacity: 1; transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exit-left {
+    opacity: 0; transform: translateX(-40px);
+    transition: opacity 0.3s cubic-bezier(.4,0,.2,1), transform 0.3s cubic-bezier(.4,0,.2,1);
+  }
+
+  .slide-inner {
+    width: 100%; max-width: var(--slide-w);
+  }
+
+  /* ── CHROME ── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s cubic-bezier(.4,0,.2,1);
+    z-index: 10;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  #slide-counter {
+    position: fixed; top: 20px; right: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    z-index: 10;
+  }
+
+  #slide-counter span { color: var(--accent); }
+
+  #nav {
+    position: fixed; bottom: 32px; right: 32px;
+    display: flex; gap: 8px;
+    z-index: 10;
+  }
+
+  .nav-btn {
+    width: 40px; height: 40px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--muted2);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.25; cursor: default;
+    pointer-events: none;
+  }
+
+  #slide-dots {
+    position: fixed; bottom: 38px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px;
+    z-index: 10;
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    transform: scale(1.3);
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .slide-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding: 3px 10px;
+    border: 1px solid rgba(0,207,168,0.3);
+    border-radius: 3px;
+    background: var(--accent-glow);
+  }
+
+  h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(42px, 5.5vw, 72px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted2);
+  }
+
+  /* ── LAYOUT HELPERS ── */
+  .cols-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-top: 8px;
+  }
+
+  .cols-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 8px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+
+  .card-accent {
+    border-color: rgba(0,207,168,0.3);
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+  }
+
+  .card-warn {
+    border-color: rgba(192,90,16,0.3);
+    background: linear-gradient(135deg, var(--surface), #fff6f0);
+  }
+
+  /* ── CODE BLOCK ── */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 0;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #3a4a6a;
+    white-space: pre;
+  }
+
+  code .cm { color: var(--muted); font-style: italic; }
+  code .kw { color: var(--accent); font-weight: 600; }
+  code .val { color: #b05010; }
+  code .str { color: #2a8060; }
+  code .arrow { color: var(--warn); font-weight: 600; }
+  code .prompt { color: var(--muted); }
+  code .key { color: #3a4a6a; }
+  code .eq { color: var(--muted2); }
+
+  /* ── BULLET LISTS ── */
+  .list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .list li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14.5px; line-height: 1.5; color: var(--text);
+  }
+
+  .list li .icon {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    border-radius: 50%;
+    margin-top: 1px;
+  }
+
+  .icon-ok { background: var(--ok-dim); color: var(--ok); }
+  .icon-err { background: var(--err-dim); color: var(--err); }
+  .icon-dot { background: var(--accent-dim); color: var(--accent); }
+  .icon-warn { background: var(--warn-dim); color: var(--warn); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+    margin: 20px 0;
+    opacity: 0.4;
+  }
+
+  /* ── NOTE ── */
+  .note {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid var(--muted);
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--muted2);
+    font-style: italic;
+  }
+
+  .warn-box {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px;
+    background: var(--warn-dim);
+    border: 1px solid rgba(192,90,16,0.3);
+    border-radius: 8px;
+    margin-top: 16px;
+    font-size: 13.5px;
+    color: #904010;
+    line-height: 1.5;
+  }
+
+  .warn-box .warn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .callout {
+    padding: 14px 18px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,143,116,0.25);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #005a47;
+    line-height: 1.5;
+  }
+
+  /* ── SLIDE 1 — TITLE ── */
+  #s1 .slide-inner {
+    display: flex; flex-direction: column;
+    justify-content: center; min-height: 70vh;
+  }
+
+  #s1 .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.2em;
+    color: var(--accent); text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  #s1 .eyebrow::before {
+    content: '';
+    display: block; width: 32px; height: 1px;
+    background: var(--accent);
+  }
+
+  #s1 h1 { font-size: clamp(48px, 6.5vw, 88px); }
+
+  #s1 .subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 20px; font-weight: 300;
+    color: var(--muted2);
+    margin-top: 4px;
+    margin-bottom: 48px;
+  }
+
+  #s1 .footer-line {
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  #s1 .footer-line::before {
+    content: '';
+    display: block; width: 24px; height: 1px;
+    background: var(--muted);
+  }
+
+  /* ── SLIDE 6 — ARCHITECTURE ── */
+  .arch-flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; margin: 24px 0;
+    flex-wrap: wrap;
+  }
+
+  .arch-node {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 18px;
+    text-align: center;
+    min-width: 130px;
+  }
+
+  .arch-node .label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .arch-node .sublabel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+  }
+
+  .arch-node.accent-node {
+    border-color: rgba(0,143,116,0.4);
+    background: linear-gradient(135deg, var(--surface), rgba(0,143,116,0.06));
+  }
+
+  .arch-arrow {
+    display: flex; align-items: center; padding: 0 8px;
+    color: var(--accent); font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .arch-arrow-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--muted);
+    text-align: center; margin-top: 4px;
+    white-space: nowrap;
+  }
+
+  .arch-arrow-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+    padding: 0 4px;
+  }
+
+  .closing-quote {
+    margin-top: 28px;
+    padding: 24px 28px;
+    border: 1px solid rgba(0,143,116,0.2);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-glow);
+    border-radius: 0 10px 10px 0;
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(14px, 1.4vw, 17px);
+    font-weight: 500;
+    line-height: 1.5;
+    color: #004a3a;
+  }
+
+  /* ── POLICY TABLE ── */
+  .policy-grid {
+    display: flex; flex-direction: column; gap: 6px; margin-top: 12px;
+  }
+
+  .policy-row {
+    display: flex; align-items: flex-start; gap: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.6;
+    padding: 8px 12px;
+    background: var(--code-bg);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+
+  /* layer badge */
+  .layer-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+  }
+  .l1 { background: rgba(0,207,168,0.15); color: var(--accent); border: 1px solid rgba(0,207,168,0.3); }
+  .l2 { background: rgba(245,130,60,0.15); color: var(--warn); border: 1px solid rgba(245,130,60,0.3); }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="slide-counter"><span id="cur">1</span> / <span id="tot">7</span></div>
+
+<div id="deck">
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 1 — TITLE
+  ══════════════════════════════════════════ -->
+  <div class="slide active" id="s1">
+    <div class="slide-inner">
+      <div class="eyebrow">Applied Invention</div>
+      <h1>Running OpenClaw<br>Safely</h1>
+      <div class="subtitle">Containers, Sandboxing, and Egress Control</div>
+      <div class="footer-line">2026</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 2 — ISSUES / YOLO MODE
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s2">
+    <div class="slide-inner">
+      <div class="slide-tag">01 — The Problem</div>
+      <h2>Issues with Running OpenClaw Uncontained</h2>
+
+      <div class="cols-2">
+        <div class="card">
+          <h3>Default: "Yolo" Mode</h3>
+          <ul class="list">
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Exec policy is <strong>security=full, ask=off</strong> out of the box</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Agent can delete, overwrite, or exfiltrate files with <strong>zero prompts</strong></span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Native file read/write tools run directly on the <strong>host</strong> — no sandbox</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>No rate limits, no time constraints, no identity awareness</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>A misconfigured or compromised agent has full access to <strong>everything</strong> the process can reach</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card card-warn">
+          <h3>What "Yolo" Looks Like</h3>
+          <pre><code><span class="prompt">$</span> openclaw exec-policy show
+
+<span class="key">Effective security:</span>  <span class="val">full</span>
+<span class="key">Effective ask:      </span>  <span class="val">off</span>
+<span class="key">Ask fallback:       </span>  <span class="val">full</span>
+
+<span class="arrow">→</span> Any command. No approval. No log.</code></pre>
+
+          <div style="margin-top:16px;">
+            <h3 style="margin-bottom:8px;">Available Presets</h3>
+            <pre><code><span class="cm"># Switch to cautious mode:</span>
+openclaw exec-policy preset <span class="kw">cautious</span>
+<span class="cm"># → asks before unknown commands</span>
+
+openclaw exec-policy preset <span class="kw">deny-all</span>
+<span class="cm"># → blocks all exec calls</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 3 — RUNNING OC IN A CONTAINER
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s3">
+    <div class="slide-inner">
+      <div class="slide-tag">02 — Container CLI</div>
+      <h2>Running OpenClaw in a Container</h2>
+
+      <p style="margin-bottom:20px;">
+        The <code style="background:var(--code-bg);padding:2px 7px;border-radius:4px;font-size:13px;border:1px solid var(--border);">--container &lt;name&gt;</code> flag runs the OpenClaw CLI itself inside an existing Docker/Podman container. This limits host-side file access — not just bash execution.
+      </p>
+
+      <div class="cols-2">
+        <div class="card card-accent">
+          <h3 style="color: var(--ok);">What IS Isolated</h3>
+          <ul class="list">
+            <li>
+              <span class="icon icon-ok">✓</span>
+              <span>Filesystem outside bind mounts — invisible to the process</span>
+            </li>
+            <li>
+              <span class="icon icon-ok">✓</span>
+              <span>Process namespace — container sees only its own processes</span>
+            </li>
+            <li>
+              <span class="icon icon-ok">✓</span>
+              <span>Accidental damage — <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">rm -rf /</code> only nukes the container rootfs</span>
+            </li>
+            <li>
+              <span class="icon icon-ok">✓</span>
+              <span>Most kernel state — can't modify host system settings</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card card-warn">
+          <h3 style="color: var(--err);">What is NOT Isolated</h3>
+          <ul class="list">
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Network — full internet and LAN access by default</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Mounted directories — workspace dir is fully writable from inside</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>File read tools — native agent file reads still run on the host runtime</span>
+            </li>
+            <li>
+              <span class="icon icon-err">✕</span>
+              <span>Container escape vulnerabilities — not a VM-grade boundary</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="note">
+        "The container is a different computer in your house" — physically separate filesystem and processes, but still on your network with full internet access.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 4 — AGENT TOOL SANDBOX
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s4">
+    <div class="slide-inner">
+      <div class="slide-tag">03 — Tool Sandbox</div>
+      <h2>Running Agent Tool Calls in Containers</h2>
+
+      <div class="callout">
+        <strong>Key distinction:</strong> Containers in OpenClaw are for the <strong>tool sandbox</strong>, not the agent itself. The agent loop (LLM → parse → dispatch) runs as a normal Node process on the host.
+      </div>
+
+      <div class="cols-2">
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <h3>How It Works</h3>
+            <ul class="list">
+              <li>
+                <span class="icon icon-dot">→</span>
+                <span>Agent loop runs on host as a normal Node process</span>
+              </li>
+              <li>
+                <span class="icon icon-dot">→</span>
+                <span>Shell/bash tool calls → <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">docker exec</code> → <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">openclaw-sbx-{session}</code></span>
+              </li>
+              <li>
+                <span class="icon icon-dot">→</span>
+                <span>Container runs <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">sleep infinity</code>, workspace dir bind-mounted</span>
+              </li>
+              <li>
+                <span class="icon icon-dot">→</span>
+                <span>Browser tools get their own container: <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">openclaw-sbx-browser-*</code></span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Configure It</h3>
+            <pre><code>openclaw config set \
+  agents.defaults.sandbox.backend <span class="kw">docker</span>
+
+openclaw config set \
+  agents.defaults.sandbox.docker.image \
+  <span class="str">ghcr.io/openclaw/openclaw:latest</span>
+
+<span class="cm"># Pull the image once:</span>
+docker pull ghcr.io/openclaw/openclaw:latest</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom:16px;">
+            <h3>What the Sandbox Isolates</h3>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-ok">✓</span><span>Filesystem outside workspace mount</span></li>
+              <li><span class="icon icon-ok">✓</span><span>Process namespace</span></li>
+              <li><span class="icon icon-ok">✓</span><span>Bash command execution</span></li>
+              <li><span class="icon icon-err">✕</span><span>Network access (still unrestricted)</span></li>
+              <li><span class="icon icon-err">✕</span><span>Mounted workspace directory</span></li>
+            </ul>
+          </div>
+
+          <div class="warn-box">
+            <span class="warn-icon">⚠</span>
+            <span>File read/write tools <strong>bypass the container entirely</strong> — they run on the host via the agent runtime. Even with <code style="font-size:11px;background:rgba(0,0,0,0.2);padding:1px 5px;border-radius:3px;">sandbox.backend: docker</code>, the agent can read any file the openclaw process can reach.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 5 — INTERNET ACCESS CONTROL
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s5">
+    <div class="slide-inner">
+      <div class="slide-tag">04 — Internet Access</div>
+      <h2>Controlling What OpenClaw Can Reach</h2>
+
+      <div class="cols-2">
+        <div>
+          <p style="margin-bottom:16px; font-size:14px;">
+            By default OpenClaw has unrestricted outbound internet access — any service, any API, any domain. Three practical layers of control, from lightweight to strict:
+          </p>
+
+          <div class="card" style="margin-bottom:12px;">
+            <h3>Approach 1 — HTTP_PROXY</h3>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-dot">1</span><span>Set <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">HTTP_PROXY</code> / <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:3px;">HTTPS_PROXY</code> at launch</span></li>
+              <li><span class="icon icon-dot">1</span><span>Route through Squid, mitmproxy, or any filtering proxy</span></li>
+              <li><span class="icon icon-dot">1</span><span>Works for any agent — zero code changes</span></li>
+              <li><span class="icon icon-err">✕</span><span>Bypassable if agent spawns subprocesses that ignore env</span></li>
+            </ul>
+          </div>
+
+          <div class="card" style="margin-bottom:12px;">
+            <h3>Approach 2 — Docker Network Rules</h3>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-dot">2</span><span>iptables rules on the Docker bridge: block all by default</span></li>
+              <li><span class="icon icon-dot">2</span><span>Allowlist specific IPs / CIDR ranges</span></li>
+              <li><span class="icon icon-ok">✓</span><span>Enforced at the kernel — agent cannot bypass</span></li>
+              <li><span class="icon icon-err">✕</span><span>IP-based only — no domain names, no content inspection</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Approach 3 — Policy Proxy (ZPL / ZPR)</h3>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-ok">✓</span><span>Domain + URL allowlist/blocklist in plain language</span></li>
+              <li><span class="icon icon-ok">✓</span><span>MCP tool-call inspection before forwarding</span></li>
+              <li><span class="icon icon-ok">✓</span><span>Identity-aware — different rules per agent or role</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <div class="card card-accent" style="margin-bottom:12px;">
+            <h3>Nanoclaw + OneCLI Integration</h3>
+            <p style="font-size:13.5px; color:var(--muted2); margin-bottom:14px;">
+              Nanoclaw now has OneCLI built in. Every agent container gets three capabilities automatically — no changes to OpenClaw or the agent itself.
+            </p>
+            <ul class="list" style="font-size:13.5px;">
+              <li>
+                <span class="icon icon-ok">✓</span>
+                <span><strong>Credential injection</strong> — secrets never appear in the agent's context or environment; OneCLI injects them at the transport layer</span>
+              </li>
+              <li>
+                <span class="icon icon-ok">✓</span>
+                <span><strong>Access token injection</strong> — per-service tokens attached to outbound requests automatically (GitHub, Slack, etc.)</span>
+              </li>
+              <li>
+                <span class="icon icon-ok">✓</span>
+                <span><strong>Proxy filtering</strong> — all outbound traffic routed through OneCLI's proxy; domains not on the allowlist are silently dropped</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Example: nanoclaw config</h3>
+            <pre style="font-size:11.5px;"><code><span class="cm"># nanoclaw .env / container config</span>
+HTTP_PROXY=http://onecli:8080
+HTTPS_PROXY=http://onecli:8080
+
+<span class="cm"># OneCLI allowlist</span>
+<span class="kw">allow</span>: api.anthropic.com
+<span class="kw">allow</span>: api.github.com
+<span class="kw">allow</span>: api.slack.com
+<span class="kw">deny</span>:  *   <span class="cm"># block everything else</span>
+
+<span class="cm"># Credential injection (no secrets in agent ctx)</span>
+inject:
+  api.github.com:
+    header: <span class="str">Authorization: token {{GITHUB_TOKEN}}</span>
+  api.slack.com:
+    header: <span class="str">Authorization: Bearer {{SLACK_TOKEN}}</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 6 — EGRESS PROXY (ZPL)
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s6">
+    <div class="slide-inner">
+      <div class="slide-tag">05 — Egress Control</div>
+      <h2>Controlling Where Agents Can Go</h2>
+
+      <div class="cols-2">
+        <div>
+          <p style="margin-bottom:16px; font-size:14px;">
+            Place a ZPL proxy at the output of every agent. Any agent that supports <code style="background:var(--code-bg);padding:1px 6px;border-radius:3px;border:1px solid var(--border);font-size:12px;">HTTP_PROXY</code> needs <strong style="color:var(--accent);">zero code changes</strong>.
+          </p>
+
+          <div class="card" style="margin-bottom:14px;">
+            <div class="layer-badge l1">Layer 1 — MCP Frame Inspection</div>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-dot">→</span><span>Reads structured tool calls (tool name, arguments)</span></li>
+              <li><span class="icon icon-dot">→</span><span>Evaluates against policy before forwarding to MCP server</span></li>
+              <li><span class="icon icon-dot">→</span><span>Blocks specific tools, time-of-day restrictions</span></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="layer-badge l2">Layer 2 — Downstream HTTP</div>
+            <ul class="list" style="font-size:13.5px;">
+              <li><span class="icon icon-dot">→</span><span>Intercepts all outbound HTTP from agents and MCP servers</span></li>
+              <li><span class="icon icon-dot">→</span><span>Evaluates destination, method, path against policy</span></li>
+              <li><span class="icon icon-dot">→</span><span>Catches <code style="font-size:11px;background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;">curl</code>, direct API calls, anything that bypasses MCP</span></li>
+            </ul>
+          </div>
+
+          <div style="margin-top:12px; padding:10px 14px; background:var(--accent-dim); border-radius:6px; border:1px solid rgba(0,143,116,0.2);">
+            <span style="font-size:13px; color:#005a47;">
+              <strong>Containerized bonus:</strong> Agent identity derived automatically from container IP — no tokens, no self-declaration.
+            </span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>ZPL Policy Examples</h3>
+          <pre style="font-size:11.5px;"><code><span class="cm"># Whitelist approved AI providers</span>
+<span class="kw">Allow</span> * to access api.anthropic.com
+<span class="kw">Allow</span> * to access api.openai.com
+<span class="kw">Never allow</span> * to access *.unauthorized-domain.com
+
+<span class="cm"># No automated runs outside staffed hours</span>
+<span class="kw">Never allow</span> openclaw to access opentrons-mcp
+  with tool:run_protocol <span class="val">after 22:00</span>
+<span class="kw">Never allow</span> openclaw to access opentrons-mcp
+  with tool:run_protocol <span class="val">before 07:00</span>
+
+<span class="cm"># MCP servers shouldn't call external AI APIs</span>
+<span class="kw">Never allow</span> opentrons-mcp to access api.anthropic.com
+<span class="kw">Never allow</span> opentrons-mcp to access api.openai.com
+
+<span class="cm"># Log every authorized run start</span>
+<span class="kw">Allow</span> openclaw with role:authorized-operator
+  to access opentrons-mcp with tool:run_protocol,
+  and signal <span class="str">"run-started"</span> to AuditLog</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SLIDE 7 — DEFENSE IN DEPTH
+  ══════════════════════════════════════════ -->
+  <div class="slide" id="s7">
+    <div class="slide-inner">
+      <div class="slide-tag">06 — Together</div>
+      <h2>Defense in Depth</h2>
+
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="label">Agent</div>
+          <div class="sublabel">OpenClaw / nanoclaw</div>
+        </div>
+        <div class="arch-arrow-wrap">
+          <div class="arch-arrow">→</div>
+          <div class="arch-arrow-label">all outbound HTTP</div>
+        </div>
+        <div class="arch-node accent-node">
+          <div class="label">Egress Proxy</div>
+          <div class="sublabel">outbound control<br>+ identity issuance</div>
+        </div>
+        <div class="arch-arrow-wrap">
+          <div class="arch-arrow">→</div>
+          <div class="arch-arrow-label">signed visa attached</div>
+        </div>
+        <div class="arch-node accent-node">
+          <div class="label">Instrument Proxy</div>
+          <div class="sublabel">verifies visa<br>enforces ZPL</div>
+        </div>
+        <div class="arch-arrow-wrap">
+          <div class="arch-arrow">→</div>
+          <div class="arch-arrow-label">authorized only</div>
+        </div>
+        <div class="arch-node">
+          <div class="label">Instrument</div>
+          <div class="sublabel">robot / IoT device</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="cols-2" style="gap:16px; margin-top:0;">
+        <ul class="list">
+          <li>
+            <span class="icon icon-ok">✓</span>
+            <span style="font-size:14px;">No single point of failure — each layer independently useful</span>
+          </li>
+          <li>
+            <span class="icon icon-ok">✓</span>
+            <span style="font-size:14px;">Compromising the outbound proxy doesn't defeat the instrument proxy</span>
+          </li>
+        </ul>
+        <ul class="list">
+          <li>
+            <span class="icon icon-ok">✓</span>
+            <span style="font-size:14px;">Every request logged: agent identity, action attempted, rule matched</span>
+          </li>
+          <li>
+            <span class="icon icon-ok">✓</span>
+            <span style="font-size:14px;">Policy in plain language — readable by lab managers, not just engineers</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="closing-quote">
+        "Agents operate with genuine autonomy — and the boundaries of that autonomy are defined in plain language, cryptographically enforced, and fully auditable."
+      </div>
+
+      <div style="margin-top:16px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:0.1em;">
+        Applied Invention · 2026
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- navigation -->
+<div id="nav">
+  <button class="nav-btn" id="prev" disabled>←</button>
+  <button class="nav-btn" id="next">→</button>
+</div>
+
+<div id="slide-dots"></div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let cur = 0;
+
+  const progressBar = document.getElementById('progress-bar');
+  const curEl = document.getElementById('cur');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const dotsContainer = document.getElementById('slide-dots');
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsContainer.appendChild(d);
+  });
+
+  function go(next) {
+    if (next < 0 || next >= total || next === cur) return;
+
+    const current = slides[cur];
+    current.classList.remove('active');
+    current.classList.add('exit-left');
+    setTimeout(() => current.classList.remove('exit-left'), 350);
+
+    cur = next;
+    slides[cur].classList.add('active');
+
+    // Update chrome
+    progressBar.style.width = ((cur + 1) / total * 100) + '%';
+    curEl.textContent = cur + 1;
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === total - 1;
+
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i === cur);
+    });
+  }
+
+  prevBtn.addEventListener('click', () => go(cur - 1));
+  nextBtn.addEventListener('click', () => go(cur + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(cur + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(cur - 1);
+  });
+
+  // Init progress
+  progressBar.style.width = (1 / total * 100) + '%';
+</script>
+</body>
+</html>

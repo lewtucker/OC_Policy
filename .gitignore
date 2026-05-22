@@ -16,6 +16,17 @@ src/server/audit.jsonl
 
 # Secrets — contains API tokens; never commit
 src/server/identities.yaml
+src/server/settings.json
 
 # Screenshots
 screenshots/
+screen_shots/
+
+# Local scratch / tooling
+skill.txt
+src/Notes.md
+"src/openclaw architecture"
+src/openclaw architecture
+
+# Contains real Telegram IDs — never commit
+Telegram IDs.rtf

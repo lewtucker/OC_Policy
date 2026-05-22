@@ -123,6 +123,9 @@
     .feed-header { display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-bottom: 2px solid var(--border); font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .feed-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
     .feed-row:last-child { border-bottom: none; }
+    .feed-separator { padding: 4px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 11px; font-family: var(--mono); letter-spacing: 2px; opacity: 0.5; }
+    .feed-row.feed-new { animation: feed-flash 2s ease-out forwards; }
+    @keyframes feed-flash { 0% { background: rgba(234,179,8,.3); } 100% { background: transparent; } }
     .feed-verdict { width: 68px; flex-shrink: 0; }
     .feed-subject { font-size: 12px; width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .feed-agent { color: var(--blue); font-size: 12px; width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -272,6 +275,7 @@
       <div>
         <div class="section-header">
           <span class="section-title">Recent Activity</span>
+          <button class="btn btn-ghost" style="font-size:12px;padding:4px 10px;" onclick="clearActivityLog()">Clear</button>
         </div>
         <div class="card">
           <div class="feed" id="dash-feed"><div class="muted" style="padding:20px;text-align:center">Loading…</div></div>
@@ -353,13 +357,13 @@
 <div class="modal-overlay open" id="token-modal" onclick="closeModalOnOverlay(event,'token-modal')">
   <div class="modal">
     <div class="modal-title">Connect to Policy Server</div>
-    <p>Enter the <code>OC_POLICY_AGENT_TOKEN</code> you set when starting the server. It will be stored in your browser for this origin.</p>
+    <p>Enter the <code>OC_POLICY_ADMIN_TOKEN</code> you set when starting the server. It will be stored in your browser for this origin.</p>
     <div class="form-row">
       <label>Server URL</label>
       <input type="text" id="input-server-url" placeholder="http://localhost:8080" />
     </div>
     <div class="form-row">
-      <label>Agent Token</label>
+      <label>Admin Token</label>
       <div style="display:flex;gap:8px">
         <input type="password" id="input-token" placeholder="your token here" style="flex:1" />
         <button type="button" onclick="toggleTokenReveal()" id="token-reveal-btn" style="flex-shrink:0;padding:0 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:12px">Show</button>
@@ -476,7 +480,9 @@ if (_urlParams.has('token')) {
   window.history.replaceState({}, '', _clean);
 }
 let TOKEN      = localStorage.getItem('oc_token') || '';
-let SERVER_URL = localStorage.getItem('oc_server_url') || window.location.origin;
+// If the saved URL is a different origin (e.g. stale localhost), reset to current origin
+const _savedUrl = localStorage.getItem('oc_server_url') || '';
+let SERVER_URL = (_savedUrl && new URL(_savedUrl).origin === window.location.origin) ? _savedUrl : window.location.origin;
 let pollTimer  = null;
 let dashTimer  = null;
 
@@ -561,6 +567,19 @@ function startPolling() {
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
+let lastSeenEntryId = null;   // newest entry id rendered last poll
+let pollsSinceActivity = 0;   // increments each 10s poll with no new entries
+let separatorTimes = [];      // ISO timestamps of inserted separators (persist across renders)
+
+async function clearActivityLog() {
+  if (!confirm('Clear all activity logs?')) return;
+  await api('DELETE', '/audit');
+  lastSeenEntryId = null;
+  pollsSinceActivity = 0;
+  separatorTimes = [];
+  loadDashboard();
+}
+
 async function loadDashboard() {
   const dot   = document.getElementById('status-dot');
   const label = document.getElementById('status-label');
@@ -614,7 +633,31 @@ async function loadDashboard() {
     const feed = document.getElementById('dash-feed');
     if (!audit.entries.length) {
       feed.innerHTML = '<div class="muted" style="padding:20px;text-align:center">No activity yet</div>';
+      lastSeenEntryId = null;
+      pollsSinceActivity = 0;
+      separatorTimes = [];
     } else {
+      const newestId = audit.entries[0].id;
+      const prevSeenId = lastSeenEntryId;
+      const hasNew = newestId !== prevSeenId;
+
+      if (hasNew) {
+        // New activity arrived — record any pending separators at the current time
+        // then reset idle counter
+        const pendingSeps = Math.min(Math.floor(pollsSinceActivity / 6), 3) - separatorTimes.length;
+        for (let s = 0; s < pendingSeps; s++) separatorTimes.push(new Date().toISOString());
+        pollsSinceActivity = 0;
+        lastSeenEntryId = newestId;
+      } else {
+        pollsSinceActivity++;
+        // Add new separator timestamps as idle time accrues (max 3 total)
+        const targetSeps = Math.min(Math.floor(pollsSinceActivity / 6), 3);
+        while (separatorTimes.length < targetSeps) separatorTimes.push(new Date().toISOString());
+      }
+
+      // Find index of previously seen entry to know which rows are new
+      const prevIdx = prevSeenId ? audit.entries.findIndex(e => e.id === prevSeenId) : -1;
+
       const header = `
         <div class="feed-header">
           <div class="feed-verdict">Status</div>
@@ -624,7 +667,18 @@ async function loadDashboard() {
           <div class="feed-time">Time</div>
           <div class="feed-cmd">Request</div>
         </div>`;
-      feed.innerHTML = header + audit.entries.map(e => {
+
+      // Merge real entries and separator timestamps into a single sorted list
+      const items = [
+        ...audit.entries.map(e => ({ type: 'entry', ts: e.timestamp, data: e })),
+        ...separatorTimes.map(ts => ({ type: 'sep', ts })),
+      ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+      feed.innerHTML = header + items.map((item, i) => {
+        if (item.type === 'sep') {
+          return `<div class="feed-separator">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</div>`;
+        }
+        const e = item.data;
         let displayVerdict = e.verdict;
         let pillClass = e.verdict;
         if (e.verdict === 'pending' && e.approval_id && approvalMap[e.approval_id]) {
@@ -632,8 +686,9 @@ async function loadDashboard() {
           displayVerdict = resolved === 'allow' ? 'approved' : 'denied';
           pillClass = displayVerdict;
         }
+        const isNew = hasNew && (prevIdx === -1 ? i === 0 : audit.entries.indexOf(e) < prevIdx);
         return `
-        <div class="feed-row">
+        <div class="feed-row${isNew ? ' feed-new' : ''}">
           <div class="feed-verdict"><span class="pill ${pillClass}" ${pillClass === 'pending' ? 'style="cursor:pointer" onclick="showPage(\'approvals\',document.querySelector(\'[onclick*=approvals]\')); return false;"' : ''}>${displayVerdict}</span></div>
           <div class="feed-subject">${esc(e.subject_id || '—')}</div>
           <div class="feed-agent">${esc(e.agent_id || '—')}</div>

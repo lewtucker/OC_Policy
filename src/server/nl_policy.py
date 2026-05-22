@@ -165,9 +165,9 @@ def create_chat_handler(engine, identities_store, require_token_fn, run_analysis
             messages.append({"role": turn["role"], "content": turn["content"]})
         messages.append({"role": "user", "content": req.message})
 
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+        client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+        response = await client.messages.create(
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=system_prompt,
             messages=messages,

@@ -16,20 +16,24 @@ if [ -n "$pids" ]; then
 fi
 
 # Agent token — used by nanoclaw enforcement plugin only
-if [ -z "$OC_POLICY_AGENT_TOKEN" ]; then
-  export OC_POLICY_AGENT_TOKEN=$(openssl rand -hex 32)
-  echo ""
-  echo "  Generated agent token (for nanoclaw plugin only):"
-  echo "    OC_POLICY_AGENT_TOKEN=$OC_POLICY_AGENT_TOKEN"
-fi
+# Must match OC_POLICY_AGENT_TOKEN in ~/Documents/dev/nanoclaw/.env
+export OC_POLICY_AGENT_TOKEN="${OC_POLICY_AGENT_TOKEN:-ltdemotoken}"
 
 # Admin token — used by the UI and CLI (humans managing policies)
-if [ -z "$OC_POLICY_ADMIN_TOKEN" ]; then
-  export OC_POLICY_ADMIN_TOKEN=$(openssl rand -hex 32)
-  echo ""
-  echo "  Generated admin token (for UI and /add-policy skill):"
-  echo "    OC_POLICY_ADMIN_TOKEN=$OC_POLICY_ADMIN_TOKEN"
-  echo ""
+# Enter this in the UI token field
+export OC_POLICY_ADMIN_TOKEN="${OC_POLICY_ADMIN_TOKEN:-ltadmintoken}"
+
+# UI splash page password — if set, a login screen gates the web UI
+# Leave empty to disable the splash page (local use)
+export OC_POLICY_UI_PASSWORD="${OC_POLICY_UI_PASSWORD:-}"
+
+echo ""
+echo "  Agent token (nanoclaw .env):  OC_POLICY_AGENT_TOKEN=$OC_POLICY_AGENT_TOKEN"
+echo "  Admin token (UI token field): OC_POLICY_ADMIN_TOKEN=$OC_POLICY_ADMIN_TOKEN"
+if [ -n "$OC_POLICY_UI_PASSWORD" ]; then
+  echo "  UI password (splash page):    OC_POLICY_UI_PASSWORD=$OC_POLICY_UI_PASSWORD"
+else
+  echo "  UI password:                  not set (splash page disabled)"
 fi
 
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then

@@ -1,47 +1,5 @@
 version: 1
 policies:
-- id: admin-allow-all
-  name: Admin allow all
-  description: Admin allow all
-  result: allow
-  priority: 85
-  match:
-    person: lew
-- id: git-requires-approval
-  name: Require approval for git commands
-  description: All git commands require approval before execution
-  result: pending
-  priority: 80
-  match:
-    tool: Bash
-    program: git
-- id: allow-admin-ls
-  name: Allow ls for admin
-  description: Allow ls command for admin group without approval
-  result: allow
-  priority: 60
-  match:
-    tool: Bash
-    group: admin
-    program: ls
-- id: allow-admin-cat
-  name: Allow cat for admin
-  description: Allow cat command for admin group without approval
-  result: allow
-  priority: 60
-  match:
-    tool: Bash
-    group: admin
-    program: cat
-- id: allow-admin-pwd
-  name: Allow pwd for admin
-  description: Allow pwd command for admin group without approval
-  result: allow
-  priority: 60
-  match:
-    tool: Bash
-    group: admin
-    program: pwd
 - id: deny-non-admin-rm
   name: Block rm for non-admin users
   description: Prevent non-admin users from using rm command
@@ -51,3 +9,16 @@ policies:
     tool: Bash
     program: rm
   protected: true
+- id: allow-all
+  name: allow all
+  description: ''
+  result: allow
+  priority: 30
+  match: {}
+- id: allow-admins-to-do-all
+  name: Allow Admins to do all
+  description: Allow Admins to do everything
+  result: allow
+  priority: 10
+  match:
+    group: admin

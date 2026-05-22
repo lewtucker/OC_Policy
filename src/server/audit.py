@@ -119,3 +119,9 @@ class AuditLog:
 
     def recent(self, limit: int = 100) -> list[AuditEntry]:
         return list(reversed(self._entries[-limit:]))
+
+    def clear(self) -> None:
+        """Clear all in-memory entries and truncate the log file."""
+        self._entries = []
+        if self._log_file and self._log_file.exists():
+            self._log_file.write_text("")

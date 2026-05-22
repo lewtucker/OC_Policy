@@ -79,13 +79,17 @@ Runs on the host as a Node.js process. **Not containerized.** Manages Telegram c
 
 Ephemeral — spawned per message, auto-removed after idle timeout (default 30 min). The container runs the Claude Agent SDK with the policy enforcement hook.
 
-| Path inside container | Source | Writable? |
+| Path inside container | Access | Notes |
 | --- | --- | --- |
-| `/app/` | Built from `container/agent-runner/` at image build time | No (compiled) |
-| `/workspace/group/` | Mounted from `data/sessions/<group>/` on host | Yes |
-| `/workspace/global/` | Mounted from host (shared CLAUDE.md) | Read-only |
-| `/workspace/ipc/input/` | Mounted from host — follow-up messages arrive as JSON files | Yes |
-| `/home/node/.claude/` | Mounted per-group from host cache | Yes |
+| `/workspace/project` | Read-only | Nanoclaw project root |
+| `/workspace/project/.env` | Read-only | Nanoclaw `.env` (tokens visible to agent) |
+| `/workspace/project/store` | Read-write | SQLite database |
+| `/workspace/group` | Read-write | Per-group persistent storage (`data/sessions/<group>/`) |
+| `/workspace/global` | Read-write | Shared CLAUDE.md and global config |
+| `/home/node/.claude` | Read-write | Per-group Claude session cache |
+| `/home/node/.gmail-mcp` | Read-write | Gmail MCP credentials |
+| `/workspace/ipc` | Read-write | IPC messages and close sentinel |
+| `/workspace/extra/nanoclaw_share` | Read-only | Shared read-only data across groups |
 
 **Entrypoint sequence** (`entrypoint.sh`):
 1. Recompile TypeScript from `/app/src/` → `/tmp/dist/`
@@ -187,22 +191,26 @@ The Docker container bind-mounts this cached copy at `/app/src/` — not the ori
 ```bash
 cd ~/Documents/dev/OC_Policy/src/server
 pip3 install -r requirements.txt
-
-# Start with auto-generated tokens:
 ./start.sh
-
-# Or with explicit tokens:
-OC_POLICY_AGENT_TOKEN=myagenttoken OC_POLICY_ADMIN_TOKEN=myadmintoken ./start.sh
 ```
 
-The script prints both tokens to the terminal. **Save the agent token** — you'll need it for nanoclaw.
+`start.sh` has fixed default tokens:
+
+- **Agent token** (`OC_POLICY_AGENT_TOKEN=ltdemotoken`) — used by nanoclaw to call `/check`
+- **Admin token** (`OC_POLICY_ADMIN_TOKEN=myadmintoken`) — used by the browser UI
+
+Override them by setting the env vars before running:
+
+```bash
+OC_POLICY_AGENT_TOKEN=mytoken OC_POLICY_ADMIN_TOKEN=myadmintoken ./start.sh
+```
 
 Verify:
 ```bash
 curl -s http://localhost:8080/health | python3 -m json.tool
 ```
 
-Open http://localhost:8080, enter the admin token (or a per-person token from `identities.yaml`) to connect the UI.
+Open http://localhost:8080 and enter the **admin token** in the UI token field.
 
 ### Step 2 — Configure Identities
 
@@ -277,17 +285,27 @@ TELEGRAM_BOT_TOKEN=123456:ABC-...
 
 # Policy server integration
 OC_POLICY_SERVER_URL=http://host.docker.internal:8080
-OC_POLICY_AGENT_TOKEN=myagenttoken    # must match the policy server's agent token
+OC_POLICY_AGENT_TOKEN=ltdemotoken    # must match OC_POLICY_AGENT_TOKEN on the policy server
+
+# Hook toggle — set to "false" to disable enforcement without removing the token
+# OC_POLICY_ENABLED=false
 ```
+
+**Important:** Do not export these variables in your shell (`~/.zshrc`). Keep them in `.env` only so that toggling `OC_POLICY_ENABLED` in `.env` is the single source of truth.
 
 ### Step 6 — Start Nanoclaw
 
 ```bash
-cd ~/Documents/dev/nanoclaw
-npm start
+cd ~/Documents/dev/nanoclaw && npx tsx src/index.ts
 ```
 
 Nanoclaw connects to Telegram and begins listening for messages. When a message arrives, it spawns a Docker container that runs the agent with the policy hook active.
+
+To kill a running nanoclaw instance:
+
+```bash
+~/Documents/dev/nanoclaw/kill_nanoclaw.sh
+```
 
 ### Step 7 — Verify End-to-End
 
@@ -307,23 +325,22 @@ Check the Web UI — the Dashboard activity feed should show the request.
 When you modify `container/agent-runner/src/index.ts`:
 
 ```bash
-# 1. Delete the per-group cache (replace telegram_main with your group name)
-rm -rf ~/Documents/dev/nanoclaw/data/sessions/telegram_main/agent-runner-src/
+# 1. Delete the per-group cache for all groups
+rm -rf ~/Documents/dev/nanoclaw/data/sessions/*/agent-runner-src/
 
 # 2. Rebuild the Docker image
-cd ~/Documents/dev/nanoclaw/container
-docker build -t nanoclaw-agent .
+cd ~/Documents/dev/nanoclaw/container && docker build -t nanoclaw-agent .
 
 # 3. Restart nanoclaw
-# (Ctrl-C the running process, then npm start again)
+~/Documents/dev/nanoclaw/kill_nanoclaw.sh
+cd ~/Documents/dev/nanoclaw && npx tsx src/index.ts
 ```
 
 **Why all three steps?** The cache contains a stale copy of the source. The Docker image contains a stale compiled copy. Both must be refreshed, and nanoclaw must restart to spawn containers with the new image.
 
-If you have multiple groups, delete the cache for each one:
-```bash
-rm -rf ~/Documents/dev/nanoclaw/data/sessions/*/agent-runner-src/
-```
+### Disabling the hook without a code change
+
+To turn off policy enforcement temporarily, set `OC_POLICY_ENABLED=false` in `nanoclaw/.env` and restart nanoclaw. No Docker rebuild needed — this is an env var check, not a code path change.
 
 ---
 
@@ -332,7 +349,7 @@ rm -rf ~/Documents/dev/nanoclaw/data/sessions/*/agent-runner-src/
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | All tool calls blocked, logs show "server unreachable" | Policy server not running, or container can't reach `host.docker.internal:8080` | Start policy server; verify `curl http://host.docker.internal:8080/health` from inside a container |
-| Tool calls blocked with 401 | Agent token mismatch between nanoclaw `.env` and policy server | Ensure `OC_POLICY_AGENT_TOKEN` matches in both places |
+| Tool calls blocked with 401 | Agent token mismatch between nanoclaw `.env` and policy server | Ensure `OC_POLICY_AGENT_TOKEN` in `nanoclaw/.env` matches the token the policy server was started with (`ltdemotoken` by default). Do not export OC tokens in shell — keep them in `.env` only. |
 | Hook changes have no effect | Stale per-group cache | Delete `data/sessions/*/agent-runner-src/` and rebuild Docker image |
 | Identity not resolved (subject=None in logs) | `telegram_id` in `identities.yaml` doesn't match `chatJid` | Check that the `tg:` prefix and numeric ID match exactly |
 | NL chat panel says "disabled" | `ANTHROPIC_API_KEY` not set when starting the policy server | Restart with `ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY ./start.sh` |

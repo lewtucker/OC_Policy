@@ -1,0 +1,127 @@
+diff --git a/container/agent-runner/src/index.ts b/container/agent-runner/src/index.ts
+index 08e8d9c..f621f08 100644
+--- a/container/agent-runner/src/index.ts
++++ b/container/agent-runner/src/index.ts
+@@ -27,6 +27,7 @@ import {
+ const OC_POLICY_SERVER_URL =
+   process.env.OC_POLICY_SERVER_URL ?? 'http://host.docker.internal:8080';
+ const OC_POLICY_AGENT_TOKEN = process.env.OC_POLICY_AGENT_TOKEN ?? '';
++const OC_POLICY_ENABLED = process.env.OC_POLICY_ENABLED !== 'false';
+ 
+ async function pollApproval(
+   approvalId: string,
+@@ -556,6 +557,7 @@ async function runQuery(
+         'Skill',
+         'NotebookEdit',
+         'mcp__nanoclaw__*',
++        'mcp__gmail__*',
+       ],
+       env: sdkEnv,
+       permissionMode: 'bypassPermissions',
+@@ -571,12 +573,16 @@ async function runQuery(
+             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
+           },
+         },
++        gmail: {
++          command: 'npx',
++          args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
++        },
+       },
+       hooks: {
+         PreCompact: [
+           { hooks: [createPreCompactHook(containerInput.assistantName)] },
+         ],
+-        PreToolUse: [{ hooks: [createPolicyHook(containerInput.chatJid)] }],
++        ...(OC_POLICY_ENABLED && OC_POLICY_AGENT_TOKEN ? { PreToolUse: [{ hooks: [createPolicyHook(containerInput.chatJid)] }] } : {}),
+       },
+     },
+   })) {
+diff --git a/src/config.ts b/src/config.ts
+index 1d15b8d..81e5eec 100644
+--- a/src/config.ts
++++ b/src/config.ts
+@@ -10,6 +10,9 @@ const envConfig = readEnvFile([
+   'ASSISTANT_HAS_OWN_NUMBER',
+   'ONECLI_URL',
+   'TZ',
++  'OC_POLICY_ENABLED',
++  'OC_POLICY_AGENT_TOKEN',
++  'OC_POLICY_SERVER_URL',
+ ]);
+ 
+ export const ASSISTANT_NAME =
+@@ -52,6 +55,12 @@ export const CONTAINER_MAX_OUTPUT_SIZE = parseInt(
+   10,
+ ); // 10MB default
+ export const ONECLI_URL = process.env.ONECLI_URL || envConfig.ONECLI_URL;
++export const OC_POLICY_ENABLED =
++  process.env.OC_POLICY_ENABLED || envConfig.OC_POLICY_ENABLED;
++export const OC_POLICY_AGENT_TOKEN =
++  process.env.OC_POLICY_AGENT_TOKEN || envConfig.OC_POLICY_AGENT_TOKEN;
++export const OC_POLICY_SERVER_URL =
++  process.env.OC_POLICY_SERVER_URL || envConfig.OC_POLICY_SERVER_URL;
+ export const MAX_MESSAGES_PER_PROMPT = Math.max(
+   1,
+   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,
+diff --git a/src/container-runner.ts b/src/container-runner.ts
+index 77aa490..ede3193 100644
+--- a/src/container-runner.ts
++++ b/src/container-runner.ts
+@@ -4,6 +4,7 @@
+  */
+ import { ChildProcess, spawn } from 'child_process';
+ import fs from 'fs';
++import os from 'os';
+ import path from 'path';
+ 
+ import {
+@@ -13,6 +14,9 @@ import {
+   DATA_DIR,
+   GROUPS_DIR,
+   IDLE_TIMEOUT,
++  OC_POLICY_AGENT_TOKEN,
++  OC_POLICY_ENABLED,
++  OC_POLICY_SERVER_URL,
+   ONECLI_URL,
+   TIMEZONE,
+ } from './config.js';
+@@ -184,6 +188,17 @@ function buildVolumeMounts(
+     readonly: false,
+   });
+ 
++  // Gmail credentials directory (for Gmail MCP inside the container)
++  const homeDir = os.homedir();
++  const gmailDir = path.join(homeDir, '.gmail-mcp');
++  if (fs.existsSync(gmailDir)) {
++    mounts.push({
++      hostPath: gmailDir,
++      containerPath: '/home/node/.gmail-mcp',
++      readonly: false, // MCP may need to refresh OAuth tokens
++    });
++  }
++
+   // Per-group IPC namespace: each group gets its own IPC directory
+   // This prevents cross-group privilege escalation via IPC
+   const groupIpcDir = resolveGroupIpcPath(group.folder);
+@@ -252,12 +267,15 @@ async function buildContainerArgs(
+   // Pass host timezone so container's local time matches the user's
+   args.push('-e', `TZ=${TIMEZONE}`);
+ 
+-  // OC Policy: pass token so the hook can authenticate with the policy server
+-  if (process.env.OC_POLICY_AGENT_TOKEN) {
+-    args.push(
+-      '-e',
+-      `OC_POLICY_AGENT_TOKEN=${process.env.OC_POLICY_AGENT_TOKEN}`,
+-    );
++  // OC Policy: pass config so the hook can authenticate with the policy server
++  if (OC_POLICY_AGENT_TOKEN) {
++    args.push('-e', `OC_POLICY_AGENT_TOKEN=${OC_POLICY_AGENT_TOKEN}`);
++  }
++  if (OC_POLICY_SERVER_URL) {
++    args.push('-e', `OC_POLICY_SERVER_URL=${OC_POLICY_SERVER_URL}`);
++  }
++  if (OC_POLICY_ENABLED) {
++    args.push('-e', `OC_POLICY_ENABLED=${OC_POLICY_ENABLED}`);
+   }
+ 
+   // OneCLI gateway handles credential injection — containers never see real secrets.

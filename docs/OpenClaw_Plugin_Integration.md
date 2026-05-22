@@ -288,9 +288,22 @@ docker logs openclaw-gateway --tail 50
 
 ## Comparison: Nanoclaw vs OpenClaw Integration
 
-The policy server now integrates with two different agent runtimes:
+The policy server integrates with two different agent runtimes. The key architectural difference is that **OpenClaw has a built-in plugin system; nanoclaw does not**.
 
-| | Nanoclaw (earlier integration) | OpenClaw (this integration) |
+### Deployment method
+
+| | Nanoclaw | OpenClaw |
+| --- | --- | --- |
+| **How to install** | Apply a git patch to the nanoclaw repo | Copy plugin files to `~/.openclaw/extensions/oc-policy/` |
+| **Requires code change** | Yes — patch modifies `container/agent-runner/src/index.ts` | No — plugin is loaded dynamically at startup |
+| **Requires Docker rebuild** | Yes — after patching, must rebuild image and clear group cache | No — jiti transpiles TypeScript at runtime |
+| **Works on a fresh fork** | No — upstream nanoclaw doesn't have the hook; patch must be re-applied | Yes — copy the plugin directory and configure `openclaw.json` |
+
+The patch and install script for nanoclaw are in [`NanoClaw_Integration/`](../NanoClaw_Integration/).
+
+### Technical comparison
+
+| | Nanoclaw | OpenClaw |
 | --- | --- | --- |
 | **Hook mechanism** | Claude Agent SDK `PreToolUse` hook | OpenClaw `before_tool_call` plugin hook |
 | **Hook location** | `container/agent-runner/src/index.ts` | `data/extensions/oc-policy/src/index.ts` |
