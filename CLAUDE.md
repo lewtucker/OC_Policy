@@ -39,8 +39,11 @@ pdf/         Generated PDFs — gitignored, recreate from docs/ as needed
 ui/          UI mockup source files (versioned HTML)
 src/plugin/  OpenClaw TypeScript enforcement plugin (Phase 1)
 src/server/  Python FastAPI policy server (Phase 1)
-public/      Vercel static output — copy of latest ui/ file as index.html
 ```
+
+Not deployed anywhere: the former Vercel deployment (`oc-policy-ui`) was deleted on 2026-11-14.
+Never expose the policy server publicly. policy.lewtucker.net runs the separate
+Policy-maker app (`~/Documents/dev/Policy-maker`), not this server.
 
 ## Nanoclaw Deployment Notes
 
@@ -72,4 +75,3 @@ Also note: nanoclaw runs as `npx tsx src/index.ts` (from source) on the host, bu
 - [docs/Policy_Examples.md](docs/Policy_Examples.md) — Policy language examples (to be filled in)
 - [docs/OC_Policy_Control_v01.md](docs/OC_Policy_Control_v01.md) — Architecture & design (current)
 - [ui/UI_Mockup_v01.html](ui/UI_Mockup_v01.html) — UI mockup source
-- Live mockup: [oc-policy-ui.vercel.app](https://oc-policy-ui.vercel.app)
